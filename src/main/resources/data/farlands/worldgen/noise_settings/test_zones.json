@@ -31,7 +31,7 @@
    "type": "minecraft:range_choice",
    "input": {
     "type": "farlands:zone_grid",
-    "cell_size": 512,
+    "cell_size": 4096,
     "rarity": 0.5,
     "salt": 0
    },
@@ -545,7 +545,7 @@
    "type": "minecraft:range_choice",
    "input": {
     "type": "farlands:zone_grid",
-    "cell_size": 512,
+    "cell_size": 4096,
     "rarity": 0.5,
     "salt": 0
    },

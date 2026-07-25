@@ -8,12 +8,19 @@ import net.minecraft.util.Identifier;
 public class Farlands implements ModInitializer {
 	public static final String MOD_ID = "farlands";
 
+	public static final WaterThinner WATER_THINNER = new WaterThinner(WaterThinner.Config.CODEC);
+
 	@Override
 	public void onInitialize() {
 		Registry.register(
 				Registries.DENSITY_FUNCTION_TYPE,
 				Identifier.of(MOD_ID, "zone_grid"),
 				ZoneGridDensityFunction.CODEC
+		);
+		Registry.register(
+				Registries.FEATURE,
+				Identifier.of(MOD_ID, "water_thinner"),
+				WATER_THINNER
 		);
 	}
 }

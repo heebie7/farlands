@@ -29,7 +29,7 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 # Everything you will actually want to tweak lives here.
 
 # --- shape of the zones themselves (handled by our own Java density function) ---
-ZONE_CELL = 512      # world is cut into cells this big; one rectangle can live in each
+ZONE_CELL = 4096     # world is cut into cells this big; one rectangle can live in each
 ZONE_RARITY = 0.5    # chance a cell holds a zone. 0.5 = frequent, for testing. 0.12 = actually rare
 ZONE_SALT = 0        # change this to shuffle which cells get picked
 
