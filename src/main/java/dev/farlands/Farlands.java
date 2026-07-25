@@ -13,7 +13,7 @@ public class Farlands implements ModInitializer {
 		Registry.register(
 				Registries.DENSITY_FUNCTION_TYPE,
 				Identifier.of(MOD_ID, "zone_grid"),
-				ZoneGridDensityFunction.CODEC_HOLDER
+				ZoneGridDensityFunction.CODEC
 		);
 	}
 }

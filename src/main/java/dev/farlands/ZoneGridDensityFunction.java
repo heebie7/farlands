@@ -39,8 +39,8 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 
 	@Override
 	public double sample(NoisePos pos) {
-		int x = pos.comp_371();
-		int z = pos.comp_373();
+		int x = pos.blockX();
+		int z = pos.blockZ();
 
 		int cellX = Math.floorDiv(x, cellSize);
 		int cellZ = Math.floorDiv(z, cellSize);
@@ -79,15 +79,13 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 		return visitor.apply(this);
 	}
 
-	/** minValue */
 	@Override
-	public double comp_377() {
+	public double minValue() {
 		return 0.0;
 	}
 
-	/** maxValue */
 	@Override
-	public double comp_378() {
+	public double maxValue() {
 		return 1.0;
 	}
 
