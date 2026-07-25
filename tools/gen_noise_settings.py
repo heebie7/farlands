@@ -7,8 +7,8 @@ vanilla's overworld noise settings are ~thousands of lines of splines. We want t
 of the test dimension to look exactly like the overworld, so we take vanilla's file and patch
 exactly two entries in the noise_router:
 
-  final_density -> range_choice(mask): corrupted math inside zones, untouched vanilla outside
-  ridges        -> range_choice(mask): a flat marker value, so the biome lands exactly on the zone
+  final_density -> range_choice(zone): corrupted math inside zones, untouched vanilla outside
+  ridges        -> range_choice(zone): a flat marker value, so the biome lands exactly on the zone
 
 Everything else (surface rules, aquifers, ore veins, caves) stays vanilla.
 
@@ -28,19 +28,21 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 # ---------------------------------------------------------------- KNOBS
 # Everything you will actually want to tweak lives here.
 
-# How much of the world is corrupted. The mask noise runs roughly -1..1.
-# 0.20 = frequent, good for testing (walk a few hundred blocks and you hit one).
-# 0.55+ = actually rare, which is what the finished mod wants.
-ZONE_THRESHOLD = 0.20
+# --- shape of the zones themselves (handled by our own Java density function) ---
+ZONE_CELL = 512      # world is cut into cells this big; one rectangle can live in each
+ZONE_RARITY = 0.5    # chance a cell holds a zone. 0.5 = frequent, for testing. 0.12 = actually rare
+ZONE_SALT = 0        # change this to shuffle which cells get picked
 
-# Height of the spires. Density delta 1.0 == roughly 134 blocks of height here.
-SPIRE_AMPLITUDE = 0.9      # ~120 blocks up and down
-ZONE_ROUGHNESS = 0.15      # ~20 blocks of extra chaos on top
-BASE_SURFACE_Y = 70        # where the corrupted ground sits when noise is neutral
+# --- what happens inside a zone ---
+# Density delta 1.0 == roughly 134 blocks of height.
+SPIRE_HEIGHT = 1.5   # ~200 blocks of needle above the base
+PIT_DEPTH = 0.6      # ~80 blocks of gouge below it
+BASE_SURFACE_Y = 70  # where the ground sits between the needles
 
-# Floating chunks with no support. Higher CUTOFF = rarer.
-FLOAT_STRENGTH = 2.2
-FLOAT_CUTOFF = 0.5
+# --- spires left hanging in the air, close above the terrain ---
+FLOAT_BOTTOM = 110
+FLOAT_TOP = 190
+FLOAT_CUTOFF = 2.9   # higher = fewer floaters (the column value has to beat this)
 
 
 # ---------------------------------------------------------------- density function helpers
@@ -64,6 +66,10 @@ def cube(a):
     return {"type": "minecraft:cube", "argument": a}
 
 
+def absolute(a):
+    return {"type": "minecraft:abs", "argument": a}
+
+
 def dmax(a, b):
     return {"type": "minecraft:max", "argument1": a, "argument2": b}
 
@@ -78,12 +84,35 @@ def gradient(from_y, from_value, to_y, to_value):
     }
 
 
+def ridge(name):
+    """
+    1 - |noise|. Peaks at 1.0 exactly where the noise crosses zero, which is a thin winding line,
+    and falls off sharply either side. This is what makes edges sharp instead of rounded - plain
+    noise has no sharp features anywhere, no matter how hard you scale it.
+    """
+    return add(const(1.0), mul(absolute(noise(name)), const(-1.0)))
+
+
+def needle(name_a, name_b):
+    """
+    Two ridge line-sets multiplied together. Each one alone gives walls; where two independent
+    sets cross you get isolated points, and cubing each one first makes those points narrow.
+    Result is 0..1, near zero almost everywhere, spiking to 1 at the crossings.
+    """
+    return mul(cube(ridge(name_a)), cube(ridge(name_b)))
+
+
 def in_zone(when_in, when_out):
-    """Applies `when_in` only where the corruption mask is above the threshold."""
+    """Applies `when_in` only inside a corruption rectangle. Hard edges, no blending."""
     return {
         "type": "minecraft:range_choice",
-        "input": noise("farlands:corruption_mask", 1.0, 0.0),
-        "min_inclusive": ZONE_THRESHOLD,
+        "input": {
+            "type": "farlands:zone_grid",
+            "cell_size": ZONE_CELL,
+            "rarity": ZONE_RARITY,
+            "salt": ZONE_SALT,
+        },
+        "min_inclusive": 0.5,
         "max_exclusive": 10.0,
         "when_in_range": when_in,
         "when_out_of_range": when_out,
@@ -93,27 +122,26 @@ def in_zone(when_in, when_out):
 # ---------------------------------------------------------------- the corrupted terrain
 def corrupted_density():
     """
-    Ground that got yanked upward and shoved downward: dense spires of ordinary earth,
-    packed close, with sharp unpredictable transitions. Plus a few chunks left floating.
+    Ground yanked into tall sharp needles and gouged into pits between them, plus separate
+    needles left hanging in the air a short way above.
     """
-    # Straight line from solid at the bottom to empty at the top; crosses zero at BASE_SURFACE_Y.
     span = 320 - (-64)
     frac = (BASE_SURFACE_Y - (-64)) / span
-    top_value = -1.0 / frac + 1.0
-    base = gradient(-64, 1.0, 320, round(top_value, 3))
+    base = gradient(-64, 1.0, 320, round(-1.0 / frac + 1.0, 3))
 
-    # cube() keeps the sign but pushes middling values toward zero -> flats stay flat,
-    # peaks get sharp and needle-like. Sign is kept, so it digs pits as well as raising spires.
-    spires = mul(cube(noise("farlands:spire_shape", 1.0, 0.0)), const(SPIRE_AMPLITUDE))
-    rough = mul(noise("farlands:zone_rough", 1.0, 0.0), const(ZONE_ROUGHNESS))
-    terrain = add(base, add(spires, rough))
+    spires = mul(needle("farlands:spire_a", "farlands:spire_b"), const(SPIRE_HEIGHT))
+    pits = mul(needle("farlands:pit_a", "farlands:pit_b"), const(-PIT_DEPTH))
+    terrain = add(base, add(spires, pits))
 
-    # Double cube = only the most extreme noise survives, so these are isolated lumps
-    # hanging in the air rather than a second ceiling.
-    floating = add(
-        mul(cube(cube(noise("farlands:float_shape", 1.0, 1.0))), const(FLOAT_STRENGTH)),
-        const(-FLOAT_CUTOFF),
+    # Floating spires: the same crossing-ridge trick, but with no height gradient, so the
+    # column is solid all the way through the window and cut off flat at both ends.
+    columns = add(mul(needle("farlands:float_a", "farlands:float_b"), const(4.0)), const(-FLOAT_CUTOFF))
+    window = add(
+        gradient(FLOAT_BOTTOM - 4, -6.0, FLOAT_BOTTOM, 0.0),
+        gradient(FLOAT_TOP, 0.0, FLOAT_TOP + 4, -6.0),
     )
+    floating = add(columns, window)
+
     return dmax(terrain, floating)
 
 

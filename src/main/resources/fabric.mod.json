@@ -9,6 +9,11 @@
 	],
 	"license": "MIT",
 	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.farlands.Farlands"
+		]
+	},
 	"depends": {
 		"fabricloader": ">=0.19.0",
 		"minecraft": "~1.21.11",
