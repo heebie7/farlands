@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "farlands",
+	"version": "${version}",
+	"name": "Farlands",
+	"description": "Rare corrupted zones with broken terrain generation, inspired by the classic Farlands bug. Currently data-only: test dimensions for tuning zone terrain.",
+	"authors": [
+		"Tima"
+	],
+	"license": "MIT",
+	"environment": "*",
+	"depends": {
+		"fabricloader": ">=0.19.0",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

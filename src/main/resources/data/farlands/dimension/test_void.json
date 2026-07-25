@@ -1,0 +1,11 @@
+{
+	"type": "minecraft:the_end",
+	"generator": {
+		"type": "minecraft:noise",
+		"settings": "farlands:test_void",
+		"biome_source": {
+			"type": "minecraft:fixed",
+			"biome": "minecraft:the_end"
+		}
+	}
+}
