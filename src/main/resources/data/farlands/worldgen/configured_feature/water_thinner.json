@@ -1,8 +1,9 @@
 {
   "type": "farlands:water_thinner",
   "config": {
-    "chance": 0.6,
+    "chance": 0.3,
     "min_y": 64,
-    "max_y": 300
+    "max_y": 300,
+    "max_body_size": 128
   }
 }
