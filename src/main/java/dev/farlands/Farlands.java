@@ -23,6 +23,11 @@ public class Farlands implements ModInitializer {
 				TunnelNoiseDensityFunction.CODEC
 		);
 		Registry.register(
+				Registries.DENSITY_FUNCTION_TYPE,
+				Identifier.of(MOD_ID, "void_pit"),
+				VoidPitDensityFunction.CODEC
+		);
+		Registry.register(
 				Registries.FEATURE,
 				Identifier.of(MOD_ID, "water_thinner"),
 				WATER_THINNER

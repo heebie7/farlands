@@ -29,7 +29,7 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 # Everything you will actually want to tweak lives here.
 
 # --- shape of the zones themselves (handled by our own Java density function) ---
-ZONE_CELL = 4096     # world is cut into cells this big; one rectangle can live in each
+ZONE_CELL = 3500     # world is cut into cells this big; one rectangle can live in each
 ZONE_RARITY = 0.5    # chance a cell holds a zone. 0.5 = frequent, for testing. 0.12 = actually rare
 ZONE_SALT = 0        # change this to shuffle which cells get picked
 ZONE_TYPES = 2       # how many zone types (1=spires only, 2=spires+classic)
@@ -43,7 +43,16 @@ BASE_SURFACE_Y = 70  # where the ground sits between the needles
 # --- spires left hanging in the air, close above the terrain ---
 FLOAT_BOTTOM = 110
 FLOAT_TOP = 190
-FLOAT_CUTOFF = 2.9   # higher = fewer floaters (the column value has to beat this)
+FLOAT_CUTOFF = 1.8   # higher = fewer floaters (the column value has to beat this)
+
+# --- spire shape ---
+SPIRE_THICKNESS = 0.12  # offset added to ridge before cubing; widens the needles. 0 = original
+
+# --- void pits (straight-walled shafts to the abyss, between spires) ---
+VOID_PIT_CELL = 48       # one potential pit per NxN area
+VOID_PIT_SIZE = 5        # width of square shaft in blocks
+VOID_PIT_CHANCE = 0.3    # chance a cell has a pit
+VOID_PIT_SALT = 42
 
 # --- what happens inside a CLASSIC zone ---
 # Swiss cheese wall from bedrock to height limit, tunnels along Z axis.
@@ -95,22 +104,24 @@ def gradient(from_y, from_value, to_y, to_value):
     }
 
 
-def ridge(name):
+def ridge(name, offset=0.0):
     """
     1 - |noise|. Peaks at 1.0 exactly where the noise crosses zero, which is a thin winding line,
     and falls off sharply either side. This is what makes edges sharp instead of rounded - plain
     noise has no sharp features anywhere, no matter how hard you scale it.
+    Offset > 0 widens the peak, making the resulting needle thicker.
     """
-    return add(const(1.0), mul(absolute(noise(name)), const(-1.0)))
+    r = add(const(1.0), mul(absolute(noise(name)), const(-1.0)))
+    return add(r, const(offset)) if offset else r
 
 
-def needle(name_a, name_b):
+def needle(name_a, name_b, thickness=0.0):
     """
     Two ridge line-sets multiplied together. Each one alone gives walls; where two independent
     sets cross you get isolated points, and cubing each one first makes those points narrow.
     Result is 0..1, near zero almost everywhere, spiking to 1 at the crossings.
     """
-    return mul(cube(ridge(name_a)), cube(ridge(name_b)))
+    return mul(cube(ridge(name_a, thickness)), cube(ridge(name_b, thickness)))
 
 
 def zone_grid():
@@ -155,6 +166,17 @@ def in_zone_typed(spires_fn, classic_fn, vanilla_fn):
     }
 
 
+def void_pit():
+    """Square vertical shafts with straight walls. Returns -100 inside, 0 outside."""
+    return {
+        "type": "farlands:void_pit",
+        "cell_size": VOID_PIT_CELL,
+        "pit_size": VOID_PIT_SIZE,
+        "chance": VOID_PIT_CHANCE,
+        "salt": VOID_PIT_SALT,
+    }
+
+
 def tunnel_noise(seed, scale, y_scale, octaves=4):
     """2D noise ignoring Z -> tunnels along Z. Computed in Java."""
     return {
@@ -176,9 +198,9 @@ def corrupted_density():
     frac = (BASE_SURFACE_Y - (-64)) / span
     base = gradient(-64, 1.0, 320, round(-1.0 / frac + 1.0, 3))
 
-    spires = mul(needle("farlands:spire_a", "farlands:spire_b"), const(SPIRE_HEIGHT))
+    spires = mul(needle("farlands:spire_a", "farlands:spire_b", SPIRE_THICKNESS), const(SPIRE_HEIGHT))
     pits = mul(needle("farlands:pit_a", "farlands:pit_b"), const(-PIT_DEPTH))
-    terrain = add(base, add(spires, pits))
+    terrain = add(base, add(spires, add(pits, void_pit())))
 
     # Floating spires: the same crossing-ridge trick, but with no height gradient, so the
     # column is solid all the way through the window and cut off flat at both ends.

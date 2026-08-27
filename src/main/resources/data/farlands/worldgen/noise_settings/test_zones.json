@@ -31,7 +31,7 @@
    "type": "minecraft:range_choice",
    "input": {
     "type": "farlands:zone_grid",
-    "cell_size": 4096,
+    "cell_size": 3500,
     "rarity": 0.5,
     "salt": 0,
     "zone_types": 2
@@ -60,24 +60,31 @@
          "argument": {
           "type": "minecraft:add",
           "argument1": {
-           "type": "minecraft:constant",
-           "argument": 1.0
-          },
-          "argument2": {
-           "type": "minecraft:mul",
+           "type": "minecraft:add",
            "argument1": {
-            "type": "minecraft:abs",
-            "argument": {
-             "type": "minecraft:noise",
-             "noise": "farlands:spire_a",
-             "xz_scale": 1.0,
-             "y_scale": 0.0
-            }
+            "type": "minecraft:constant",
+            "argument": 1.0
            },
            "argument2": {
-            "type": "minecraft:constant",
-            "argument": -1.0
+            "type": "minecraft:mul",
+            "argument1": {
+             "type": "minecraft:abs",
+             "argument": {
+              "type": "minecraft:noise",
+              "noise": "farlands:spire_a",
+              "xz_scale": 1.0,
+              "y_scale": 0.0
+             }
+            },
+            "argument2": {
+             "type": "minecraft:constant",
+             "argument": -1.0
+            }
            }
+          },
+          "argument2": {
+           "type": "minecraft:constant",
+           "argument": 0.12
           }
          }
         },
@@ -86,24 +93,31 @@
          "argument": {
           "type": "minecraft:add",
           "argument1": {
-           "type": "minecraft:constant",
-           "argument": 1.0
-          },
-          "argument2": {
-           "type": "minecraft:mul",
+           "type": "minecraft:add",
            "argument1": {
-            "type": "minecraft:abs",
-            "argument": {
-             "type": "minecraft:noise",
-             "noise": "farlands:spire_b",
-             "xz_scale": 1.0,
-             "y_scale": 0.0
-            }
+            "type": "minecraft:constant",
+            "argument": 1.0
            },
            "argument2": {
-            "type": "minecraft:constant",
-            "argument": -1.0
+            "type": "minecraft:mul",
+            "argument1": {
+             "type": "minecraft:abs",
+             "argument": {
+              "type": "minecraft:noise",
+              "noise": "farlands:spire_b",
+              "xz_scale": 1.0,
+              "y_scale": 0.0
+             }
+            },
+            "argument2": {
+             "type": "minecraft:constant",
+             "argument": -1.0
+            }
            }
+          },
+          "argument2": {
+           "type": "minecraft:constant",
+           "argument": 0.12
           }
          }
         }
@@ -114,65 +128,75 @@
        }
       },
       "argument2": {
-       "type": "minecraft:mul",
+       "type": "minecraft:add",
        "argument1": {
         "type": "minecraft:mul",
         "argument1": {
-         "type": "minecraft:cube",
-         "argument": {
-          "type": "minecraft:add",
-          "argument1": {
-           "type": "minecraft:constant",
-           "argument": 1.0
-          },
-          "argument2": {
-           "type": "minecraft:mul",
+         "type": "minecraft:mul",
+         "argument1": {
+          "type": "minecraft:cube",
+          "argument": {
+           "type": "minecraft:add",
            "argument1": {
-            "type": "minecraft:abs",
-            "argument": {
-             "type": "minecraft:noise",
-             "noise": "farlands:pit_a",
-             "xz_scale": 1.0,
-             "y_scale": 0.0
-            }
+            "type": "minecraft:constant",
+            "argument": 1.0
            },
            "argument2": {
+            "type": "minecraft:mul",
+            "argument1": {
+             "type": "minecraft:abs",
+             "argument": {
+              "type": "minecraft:noise",
+              "noise": "farlands:pit_a",
+              "xz_scale": 1.0,
+              "y_scale": 0.0
+             }
+            },
+            "argument2": {
+             "type": "minecraft:constant",
+             "argument": -1.0
+            }
+           }
+          }
+         },
+         "argument2": {
+          "type": "minecraft:cube",
+          "argument": {
+           "type": "minecraft:add",
+           "argument1": {
             "type": "minecraft:constant",
-            "argument": -1.0
+            "argument": 1.0
+           },
+           "argument2": {
+            "type": "minecraft:mul",
+            "argument1": {
+             "type": "minecraft:abs",
+             "argument": {
+              "type": "minecraft:noise",
+              "noise": "farlands:pit_b",
+              "xz_scale": 1.0,
+              "y_scale": 0.0
+             }
+            },
+            "argument2": {
+             "type": "minecraft:constant",
+             "argument": -1.0
+            }
            }
           }
          }
         },
         "argument2": {
-         "type": "minecraft:cube",
-         "argument": {
-          "type": "minecraft:add",
-          "argument1": {
-           "type": "minecraft:constant",
-           "argument": 1.0
-          },
-          "argument2": {
-           "type": "minecraft:mul",
-           "argument1": {
-            "type": "minecraft:abs",
-            "argument": {
-             "type": "minecraft:noise",
-             "noise": "farlands:pit_b",
-             "xz_scale": 1.0,
-             "y_scale": 0.0
-            }
-           },
-           "argument2": {
-            "type": "minecraft:constant",
-            "argument": -1.0
-           }
-          }
-         }
+         "type": "minecraft:constant",
+         "argument": -0.6
         }
        },
        "argument2": {
-        "type": "minecraft:constant",
-        "argument": -0.6
+        "type": "farlands:void_pit",
+        "cell_size": 48,
+        "pit_size": 5,
+        "chance": 0.3,
+        "salt": 42
        }
       }
      }
@@ -245,7 +269,7 @@
       },
       "argument2": {
        "type": "minecraft:constant",
-       "argument": -2.9
+       "argument": -1.8
       }
      },
      "argument2": {
@@ -271,7 +295,7 @@
     "type": "minecraft:range_choice",
     "input": {
      "type": "farlands:zone_grid",
-     "cell_size": 4096,
+     "cell_size": 3500,
      "rarity": 0.5,
      "salt": 0,
      "zone_types": 2
@@ -596,7 +620,7 @@
    "type": "minecraft:range_choice",
    "input": {
     "type": "farlands:zone_grid",
-    "cell_size": 4096,
+    "cell_size": 3500,
     "rarity": 0.5,
     "salt": 0,
     "zone_types": 2
@@ -611,7 +635,7 @@
     "type": "minecraft:range_choice",
     "input": {
      "type": "farlands:zone_grid",
-     "cell_size": 4096,
+     "cell_size": 3500,
      "rarity": 0.5,
      "salt": 0,
      "zone_types": 2
