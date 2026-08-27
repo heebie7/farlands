@@ -18,6 +18,11 @@ public class Farlands implements ModInitializer {
 				ZoneGridDensityFunction.CODEC
 		);
 		Registry.register(
+				Registries.DENSITY_FUNCTION_TYPE,
+				Identifier.of(MOD_ID, "tunnel_noise"),
+				TunnelNoiseDensityFunction.CODEC
+		);
+		Registry.register(
 				Registries.FEATURE,
 				Identifier.of(MOD_ID, "water_thinner"),
 				WATER_THINNER

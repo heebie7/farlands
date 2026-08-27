@@ -22,7 +22,8 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 	public static final MapCodec<ZoneGridDensityFunction> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.INT.fieldOf("cell_size").forGetter(f -> f.cellSize),
 			Codec.DOUBLE.fieldOf("rarity").forGetter(f -> f.rarity),
-			Codec.INT.optionalFieldOf("salt", 0).forGetter(f -> f.salt)
+			Codec.INT.optionalFieldOf("salt", 0).forGetter(f -> f.salt),
+			Codec.INT.optionalFieldOf("zone_types", 1).forGetter(f -> f.zoneTypes)
 	).apply(instance, ZoneGridDensityFunction::new));
 
 	public static final CodecHolder<ZoneGridDensityFunction> CODEC_HOLDER = CodecHolder.of(CODEC);
@@ -30,11 +31,13 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 	private final int cellSize;
 	private final double rarity;
 	private final int salt;
+	private final int zoneTypes;
 
-	public ZoneGridDensityFunction(int cellSize, double rarity, int salt) {
+	public ZoneGridDensityFunction(int cellSize, double rarity, int salt, int zoneTypes) {
 		this.cellSize = Math.max(16, cellSize);
 		this.rarity = rarity;
 		this.salt = salt;
+		this.zoneTypes = Math.max(1, zoneTypes);
 	}
 
 	@Override
@@ -61,7 +64,10 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 
 		boolean inside = localX >= offsetX && localX < offsetX + width
 				&& localZ >= offsetZ && localZ < offsetZ + depth;
-		return inside ? 1.0 : 0.0;
+		if (!inside) return 0.0;
+		if (zoneTypes <= 1) return 1.0;
+		int type = (int) ((h >>> 48) & 0xFFL) % zoneTypes;
+		return type + 1.0;
 	}
 
 	private static long hash(int cellX, int cellZ, int salt) {
@@ -86,7 +92,7 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 
 	@Override
 	public double maxValue() {
-		return 1.0;
+		return zoneTypes;
 	}
 
 	@Override

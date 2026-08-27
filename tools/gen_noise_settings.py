@@ -32,8 +32,9 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 ZONE_CELL = 4096     # world is cut into cells this big; one rectangle can live in each
 ZONE_RARITY = 0.5    # chance a cell holds a zone. 0.5 = frequent, for testing. 0.12 = actually rare
 ZONE_SALT = 0        # change this to shuffle which cells get picked
+ZONE_TYPES = 2       # how many zone types (1=spires only, 2=spires+classic)
 
-# --- what happens inside a zone ---
+# --- what happens inside a SPIRES zone ---
 # Density delta 1.0 == roughly 134 blocks of height.
 SPIRE_HEIGHT = 1.5   # ~200 blocks of needle above the base
 PIT_DEPTH = 0.6      # ~80 blocks of gouge below it
@@ -43,6 +44,16 @@ BASE_SURFACE_Y = 70  # where the ground sits between the needles
 FLOAT_BOTTOM = 110
 FLOAT_TOP = 190
 FLOAT_CUTOFF = 2.9   # higher = fewer floaters (the column value has to beat this)
+
+# --- what happens inside a CLASSIC zone ---
+# Swiss cheese wall from bedrock to height limit, tunnels along Z axis.
+CLASSIC_FILL = 1.5          # bias toward solid (higher = more wall, less hole)
+CLASSIC_MAIN_SCALE = 0.03   # horizontal scale of main carving (~33 block features)
+CLASSIC_MAIN_YSCALE = 0.03  # vertical scale (same = roughly square cross-section)
+CLASSIC_MAIN_AMP = 8.0      # amplitude of main carving noise
+CLASSIC_DETAIL_SCALE = 0.08 # finer detail layer
+CLASSIC_DETAIL_YSCALE = 0.1
+CLASSIC_DETAIL_AMP = 3.0
 
 
 # ---------------------------------------------------------------- density function helpers
@@ -102,20 +113,56 @@ def needle(name_a, name_b):
     return mul(cube(ridge(name_a)), cube(ridge(name_b)))
 
 
+def zone_grid():
+    return {
+        "type": "farlands:zone_grid",
+        "cell_size": ZONE_CELL,
+        "rarity": ZONE_RARITY,
+        "salt": ZONE_SALT,
+        "zone_types": ZONE_TYPES,
+    }
+
+
 def in_zone(when_in, when_out):
     """Applies `when_in` only inside a corruption rectangle. Hard edges, no blending."""
     return {
         "type": "minecraft:range_choice",
-        "input": {
-            "type": "farlands:zone_grid",
-            "cell_size": ZONE_CELL,
-            "rarity": ZONE_RARITY,
-            "salt": ZONE_SALT,
-        },
+        "input": zone_grid(),
         "min_inclusive": 0.5,
         "max_exclusive": 10.0,
         "when_in_range": when_in,
         "when_out_of_range": when_out,
+    }
+
+
+def in_zone_typed(spires_fn, classic_fn, vanilla_fn):
+    """Route to different density based on zone type (1.0=spires, 2.0=classic)."""
+    grid = zone_grid()
+    return {
+        "type": "minecraft:range_choice",
+        "input": grid,
+        "min_inclusive": 0.5,
+        "max_exclusive": 1.5,
+        "when_in_range": spires_fn,
+        "when_out_of_range": {
+            "type": "minecraft:range_choice",
+            "input": grid,
+            "min_inclusive": 1.5,
+            "max_exclusive": 2.5,
+            "when_in_range": classic_fn,
+            "when_out_of_range": vanilla_fn,
+        },
+    }
+
+
+def tunnel_noise(seed, scale, y_scale, octaves=4):
+    """2D noise ignoring Z -> tunnels along Z. Computed in Java."""
+    return {
+        "type": "farlands:tunnel_noise",
+        "scale": scale,
+        "y_scale": y_scale,
+        "octaves": octaves,
+        "seed": seed,
     }
 
 
@@ -143,6 +190,24 @@ def corrupted_density():
     floating = add(columns, window)
 
     return dmax(terrain, floating)
+
+
+def classic_density():
+    """
+    Classic Far Lands: solid mass from bedrock (-64) to height limit (320), carved into
+    Swiss cheese by 2D noise that ignores Z (tunnels run along Z axis). Surface rules
+    still apply at every solid/air boundary, so grass, trees, etc. generate normally.
+    """
+    fill = const(CLASSIC_FILL)
+    main = mul(
+        tunnel_noise(0, CLASSIC_MAIN_SCALE, CLASSIC_MAIN_YSCALE, octaves=4),
+        const(-CLASSIC_MAIN_AMP),
+    )
+    detail = mul(
+        tunnel_noise(1, CLASSIC_DETAIL_SCALE, CLASSIC_DETAIL_YSCALE, octaves=3),
+        const(-CLASSIC_DETAIL_AMP),
+    )
+    return add(fill, add(main, detail))
 
 
 def void_density():
@@ -175,10 +240,14 @@ def main():
     # --- test_zones: vanilla overworld with corruption patched into two router entries
     zones = fetch("overworld")
     router = zones["noise_router"]
-    router["final_density"] = in_zone(corrupted_density(), router["final_density"])
-    # A flat marker instead of vanilla weirdness: 1.0 inside a zone, -1.0 outside. The biome
-    # list in dimension/test_zones.json splits on exactly this, so biome == zone, always.
-    router["ridges"] = in_zone(const(1.0), const(-1.0))
+    router["final_density"] = in_zone_typed(
+        corrupted_density(),
+        classic_density(),
+        router["final_density"],
+    )
+    # Flat marker values: 0.5 for spires, 0.9 for classic, -1.0 outside. The biome list
+    # in dimension/test_zones.json splits on weirdness, so biome == zone type, always.
+    router["ridges"] = in_zone_typed(const(0.5), const(0.9), const(-1.0))
     write(zones, "test_zones")
 
     # --- test_void: vanilla end, terrain replaced wholesale
