@@ -84,7 +84,7 @@
           },
           "argument2": {
            "type": "minecraft:constant",
-           "argument": 0.12
+           "argument": 0.07
           }
          }
         },
@@ -117,7 +117,7 @@
           },
           "argument2": {
            "type": "minecraft:constant",
-           "argument": 0.12
+           "argument": 0.07
           }
          }
         }

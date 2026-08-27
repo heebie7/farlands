@@ -70,7 +70,7 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 		return type + 1.0;
 	}
 
-	private static long hash(int cellX, int cellZ, int salt) {
+	static long hash(int cellX, int cellZ, int salt) {
 		long h = cellX * 0x9E3779B97F4A7C15L ^ cellZ * 0xC2B2AE3D27D4EB4FL ^ salt * 0x165667B19E3779F9L;
 		h ^= h >>> 33;
 		h *= 0xFF51AFD7ED558CCDL;

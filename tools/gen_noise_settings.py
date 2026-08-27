@@ -46,7 +46,7 @@ FLOAT_TOP = 190
 FLOAT_CUTOFF = 1.8   # higher = fewer floaters (the column value has to beat this)
 
 # --- spire shape ---
-SPIRE_THICKNESS = 0.12  # offset added to ridge before cubing; widens the needles. 0 = original
+SPIRE_THICKNESS = 0.07  # offset added to ridge before cubing; widens the needles. 0 = original
 
 # --- void pits (straight-walled shafts to the abyss, between spires) ---
 VOID_PIT_CELL = 48       # one potential pit per NxN area

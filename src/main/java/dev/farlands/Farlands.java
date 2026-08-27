@@ -1,6 +1,7 @@
 package dev.farlands;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
@@ -32,5 +33,9 @@ public class Farlands implements ModInitializer {
 				Identifier.of(MOD_ID, "water_thinner"),
 				WATER_THINNER
 		);
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+			LocateZoneCommand.register(dispatcher);
+		});
 	}
 }
