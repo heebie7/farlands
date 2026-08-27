@@ -20,7 +20,6 @@ public class LocateZoneCommand {
 
 	public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
 		dispatcher.register(CommandManager.literal("farlands")
-			.requires(source -> source.hasPermissionLevel(2))
 			.then(CommandManager.literal("locate")
 				.executes(ctx -> locateNearest(ctx, -1))
 				.then(CommandManager.literal("spires")
