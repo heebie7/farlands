@@ -29,8 +29,8 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 # Everything you will actually want to tweak lives here.
 
 # --- shape of the zones themselves (handled by our own Java density function) ---
-ZONE_CELL = 3500     # world is cut into cells this big; one rectangle can live in each
-ZONE_RARITY = 0.5    # chance a cell holds a zone. 0.5 = frequent, for testing. 0.12 = actually rare
+ZONE_CELL = 3000     # world is cut into cells this big; one rectangle can live in each
+ZONE_RARITY = 0.1    # chance a cell holds a zone. 0.1 = 5x rarer than testing default
 ZONE_SALT = 0        # change this to shuffle which cells get picked
 ZONE_TYPES = 2       # how many zone types (1=spires only, 2=spires+classic)
 
@@ -267,9 +267,8 @@ def main():
         classic_density(),
         router["final_density"],
     )
-    # Flat marker values: 0.5 for spires, 0.9 for classic, -1.0 outside. The biome list
-    # in dimension/test_zones.json splits on weirdness, so biome == zone type, always.
-    router["ridges"] = in_zone_typed(const(0.5), const(0.9), const(-1.0))
+    # Ridges left vanilla: biome source uses the overworld preset, so biomes are fully
+    # vanilla everywhere. Zones in a desert get sand, in ice spikes get ice, etc.
     write(zones, "test_zones")
 
     # --- test_void: vanilla end, terrain replaced wholesale

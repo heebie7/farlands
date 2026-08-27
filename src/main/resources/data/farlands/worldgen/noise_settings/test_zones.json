@@ -31,8 +31,8 @@
    "type": "minecraft:range_choice",
    "input": {
     "type": "farlands:zone_grid",
-    "cell_size": 3500,
-    "rarity": 0.5,
+    "cell_size": 3000,
+    "rarity": 0.1,
     "salt": 0,
     "zone_types": 2
    },
@@ -295,8 +295,8 @@
     "type": "minecraft:range_choice",
     "input": {
      "type": "farlands:zone_grid",
-     "cell_size": 3500,
-     "rarity": 0.5,
+     "cell_size": 3000,
+     "rarity": 0.1,
      "salt": 0,
      "zone_types": 2
     },
@@ -616,42 +616,7 @@
     "min": -40.0
    }
   },
-  "ridges": {
-   "type": "minecraft:range_choice",
-   "input": {
-    "type": "farlands:zone_grid",
-    "cell_size": 3500,
-    "rarity": 0.5,
-    "salt": 0,
-    "zone_types": 2
-   },
-   "min_inclusive": 0.5,
-   "max_exclusive": 1.5,
-   "when_in_range": {
-    "type": "minecraft:constant",
-    "argument": 0.5
-   },
-   "when_out_of_range": {
-    "type": "minecraft:range_choice",
-    "input": {
-     "type": "farlands:zone_grid",
-     "cell_size": 3500,
-     "rarity": 0.5,
-     "salt": 0,
-     "zone_types": 2
-    },
-    "min_inclusive": 1.5,
-    "max_exclusive": 2.5,
-    "when_in_range": {
-     "type": "minecraft:constant",
-     "argument": 0.9
-    },
-    "when_out_of_range": {
-     "type": "minecraft:constant",
-     "argument": -1.0
-    }
-   }
-  },
+  "ridges": "minecraft:overworld/ridges",
   "temperature": {
    "type": "minecraft:shifted_noise",
    "noise": "minecraft:temperature",
