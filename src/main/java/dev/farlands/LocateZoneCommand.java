@@ -9,14 +9,14 @@ import net.minecraft.util.math.Vec3d;
 
 /**
  * /farlands locate [spires|classic] — finds the nearest zone by type.
- * Values here must match the knobs in gen_noise_settings.py.
+ * Knobs come from ZoneGridDensityFunction so this cannot drift away from the terrain mask.
  */
 public class LocateZoneCommand {
-	private static final int CELL_SIZE = 3000;
-	private static final double RARITY = 0.1;
-	private static final int SALT = 0;
-	private static final int ZONE_TYPES = 2;
-	private static final String[] TYPE_NAMES = {"spires", "classic"};
+	private static final int CELL_SIZE = ZoneGridDensityFunction.DEFAULT_CELL_SIZE;
+	private static final double RARITY = ZoneGridDensityFunction.DEFAULT_RARITY;
+	private static final int SALT = ZoneGridDensityFunction.DEFAULT_SALT;
+	private static final int ZONE_TYPES = ZoneGridDensityFunction.DEFAULT_ZONE_TYPES;
+	private static final String[] TYPE_NAMES = ZoneGridDensityFunction.TYPE_NAMES;
 
 	public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
 		dispatcher.register(CommandManager.literal("farlands")
@@ -51,18 +51,15 @@ public class LocateZoneCommand {
 					int cellZ = playerCellZ + dz;
 					long h = ZoneGridDensityFunction.hash(cellX, cellZ, SALT);
 
-					if ((h & 0xFFFFL) / 65536.0 >= RARITY) continue;
+					if (!ZoneGridDensityFunction.cellHasZone(h, RARITY)) continue;
 
-					int type = 0;
-					if (ZONE_TYPES > 1) {
-						type = (int) ((h >>> 48) & 0xFFL) % ZONE_TYPES;
-					}
+					int type = ZoneGridDensityFunction.cellZoneType(h, ZONE_TYPES);
 					if (filterType >= 0 && type != filterType) continue;
 
-					int width = CELL_SIZE / 4 + (int) (((h >>> 16) & 0xFFL) * CELL_SIZE / 512L);
-					int depth = CELL_SIZE / 4 + (int) (((h >>> 24) & 0xFFL) * CELL_SIZE / 512L);
-					int offsetX = (int) (((h >>> 32) & 0xFFL) * (CELL_SIZE - width) / 256L);
-					int offsetZ = (int) (((h >>> 40) & 0xFFL) * (CELL_SIZE - depth) / 256L);
+					int width = ZoneGridDensityFunction.rectWidth(h, CELL_SIZE);
+					int depth = ZoneGridDensityFunction.rectDepth(h, CELL_SIZE);
+					int offsetX = ZoneGridDensityFunction.rectOffsetX(h, CELL_SIZE, width);
+					int offsetZ = ZoneGridDensityFunction.rectOffsetZ(h, CELL_SIZE, depth);
 
 					int centerX = cellX * CELL_SIZE + offsetX + width / 2;
 					int centerZ = cellZ * CELL_SIZE + offsetZ + depth / 2;

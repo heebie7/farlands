@@ -54,8 +54,15 @@ Needle spacing is not in that file — it is `firstOctave` in
 `worldgen/noise/spire_a.json` and `spire_b.json`. More negative = further apart.
 
 Water thinning is configured in
-`worldgen/configured_feature/water_thinner.json`: `chance` (share of columns cleared),
-`min_y` (nothing at or below this is touched, so oceans and rivers survive), `max_y`.
+`worldgen/configured_feature/water_thinner.json`: `chance` (share of water *bodies* removed —
+one roll per connected body, it goes whole or stays whole), `min_y` (nothing at or below this is
+touched, so oceans and rivers survive), `max_y`, `max_body_size` (bigger bodies are left alone).
+
+Since v0.6.0 the zones sit in ordinary vanilla biomes, so the feature is attached to **every**
+overworld biome from Java (`BiomeModifications`) and tests "am I inside a zone" itself, using the
+same hash the terrain mask runs on. The zone knobs it reads are the constants at the top of
+`ZoneGridDensityFunction.java` — those must be kept equal to `ZONE_CELL` / `ZONE_RARITY` /
+`ZONE_SALT` / `ZONE_TYPES` in the script.
 
 After changing anything in the script: `python3 tools/gen_noise_settings.py`, then push.
 JSON files under `data/` take effect on the next build with no regeneration.

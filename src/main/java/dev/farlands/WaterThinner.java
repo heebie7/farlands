@@ -36,6 +36,12 @@ import java.util.Set;
  * than the lake did. Neither are bodies that reach the edge of the chunk or the bottom of the
  * range, because the rest of them lives in a chunk this pass cannot see, and half a pool would
  * just refill from the other half.
+ *
+ * The feature is attached to every overworld biome (see Farlands#onInitialize), because the zones
+ * sit in whatever vanilla biome the terrain lands in - they have no biome of their own since
+ * v0.6.0. So the "are we inside a zone" test lives HERE instead: same hash the terrain mask runs
+ * on, checked once per chunk before anything is scanned. Outside a zone this returns immediately
+ * and costs one hash, which is what makes it safe to hang on the whole overworld.
  */
 public class WaterThinner extends Feature<WaterThinner.Config> {
 	public record Config(float chance, int minY, int maxY, int maxBodySize) implements FeatureConfig {
@@ -61,8 +67,15 @@ public class WaterThinner extends Feature<WaterThinner.Config> {
 
 	@Override
 	public boolean generate(FeatureContext<Config> context) {
-		StructureWorldAccess world = context.getWorld();
 		BlockPos origin = context.getOrigin();
+
+		// Zone gate. Chunk centre decides, so the worst case is a 8-block fuzz at a zone wall that
+		// is a thousand blocks across. Everything else in the overworld leaves after this line.
+		if (ZoneGridDensityFunction.zoneTypeAt(origin.getX() + 8, origin.getZ() + 8) < 0) {
+			return false;
+		}
+
+		StructureWorldAccess world = context.getWorld();
 		Random random = context.getRandom();
 		Config config = context.getConfig();
 
