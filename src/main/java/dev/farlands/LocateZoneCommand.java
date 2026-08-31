@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 
 /**
- * /farlands locate [spires|classic] — finds the nearest zone by type.
+ * /farlands locate [spires|classic|caverns] — finds the nearest zone by type.
  * Knobs come from ZoneGridDensityFunction so this cannot drift away from the terrain mask.
  */
 public class LocateZoneCommand {
@@ -26,6 +26,8 @@ public class LocateZoneCommand {
 					.executes(ctx -> locateNearest(ctx, 0)))
 				.then(CommandManager.literal("classic")
 					.executes(ctx -> locateNearest(ctx, 1)))
+				.then(CommandManager.literal("caverns")
+					.executes(ctx -> locateNearest(ctx, 2)))
 			)
 		);
 	}

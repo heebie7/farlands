@@ -1,0 +1,7 @@
+{
+  "type": "farlands:void_shaft_clear",
+  "config": {
+    "min_y": -64,
+    "max_y": 200
+  }
+}

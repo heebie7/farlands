@@ -36,8 +36,8 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 	public static final int DEFAULT_CELL_SIZE = 3000;
 	public static final double DEFAULT_RARITY = 0.1;
 	public static final int DEFAULT_SALT = 0;
-	public static final int DEFAULT_ZONE_TYPES = 2;
-	public static final String[] TYPE_NAMES = {"spires", "classic"};
+	public static final int DEFAULT_ZONE_TYPES = 3;
+	public static final String[] TYPE_NAMES = {"spires", "classic", "caverns"};
 
 	// --- cell geometry, shared so nobody re-derives it slightly differently ---
 

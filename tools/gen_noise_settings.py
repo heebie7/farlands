@@ -32,7 +32,7 @@ CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
 ZONE_CELL = 3000     # world is cut into cells this big; one rectangle can live in each
 ZONE_RARITY = 0.1    # chance a cell holds a zone. 0.1 = 5x rarer than testing default
 ZONE_SALT = 0        # change this to shuffle which cells get picked
-ZONE_TYPES = 2       # how many zone types (1=spires only, 2=spires+classic)
+ZONE_TYPES = 3       # how many zone types (1=spires, 2=+classic, 3=+caverns)
 
 # --- what happens inside a SPIRES zone ---
 # Density delta 1.0 == roughly 134 blocks of height.
@@ -63,6 +63,26 @@ CLASSIC_MAIN_AMP = 8.0      # amplitude of main carving noise
 CLASSIC_DETAIL_SCALE = 0.08 # finer detail layer
 CLASSIC_DETAIL_YSCALE = 0.1
 CLASSIC_DETAIL_AMP = 3.0
+
+# --- what happens inside a CAVERNS zone ---
+# Т, 2026-08-31: "вся зона состоит из сплошных слоев больших пещер". Floors every CAVERNS_PERIOD
+# blocks, thin, with a huge open cave between each pair, all the way up. The top tier has no roof
+# at all - the zone is an open wound seen from the sky.
+CAVERNS_PERIOD = 48        # blocks between one floor and the next
+CAVERNS_THICKNESS = 14     # how thick a floor slab is. Keep well above the 8-block noise grid.
+CAVERNS_BASE_Y = -60       # a floor is centred here, so the world floor is solid to stand on
+CAVERNS_TOP_Y = 140        # last complete tier; above this the roof is eaten away
+CAVERNS_OPEN_SPAN = 35     # blocks over which the roof fades out, so the rim is ragged not sawn
+CAVERNS_WOBBLE_AMP = 2.0   # long-wave warp of the floors. 1.0 ~ moves a surface by thickness/2.
+CAVERNS_DETAIL_AMP = 0.7   # short-wave roughness on the same surfaces
+
+# --- caverns shafts: straight down, through every tier, through the bedrock, into nothing ---
+# ⚠ MUST MATCH the CAVERNS_PIT_* constants in VoidShaftClear.java, which is what removes the
+# bedrock lid and the aquifer water the density function cannot see.
+CAVERNS_PIT_CELL = 544     # one shaft per 544x544, same rhythm as the towers (spacing 34 chunks)
+CAVERNS_PIT_SIZE = 34      # nominal width; shape_variety rolls 0.5x..1.5x and picks a shape
+CAVERNS_PIT_CHANCE = 0.9
+CAVERNS_PIT_SALT = 7717
 
 
 # ---------------------------------------------------------------- density function helpers
@@ -146,34 +166,45 @@ def in_zone(when_in, when_out):
     }
 
 
-def in_zone_typed(spires_fn, classic_fn, vanilla_fn):
-    """Route to different density based on zone type (1.0=spires, 2.0=classic)."""
+def in_zone_typed(type_fns, vanilla_fn):
+    """
+    Route to a different density per zone type. The mask returns type+1, so spires is 1.0,
+    classic 2.0, caverns 3.0, and 0.0 means no zone here. Built as nested range_choice from the
+    last type backwards, so adding a fourth type is one more entry in the list.
+    """
     grid = zone_grid()
-    return {
-        "type": "minecraft:range_choice",
-        "input": grid,
-        "min_inclusive": 0.5,
-        "max_exclusive": 1.5,
-        "when_in_range": spires_fn,
-        "when_out_of_range": {
+    node = vanilla_fn
+    for index in range(len(type_fns) - 1, -1, -1):
+        node = {
             "type": "minecraft:range_choice",
             "input": grid,
-            "min_inclusive": 1.5,
-            "max_exclusive": 2.5,
-            "when_in_range": classic_fn,
-            "when_out_of_range": vanilla_fn,
-        },
+            "min_inclusive": index + 0.5,
+            "max_exclusive": index + 1.5,
+            "when_in_range": type_fns[index],
+            "when_out_of_range": node,
+        }
+    return node
+
+
+def void_pit(cell=None, size=None, chance=None, salt=None, variety=False):
+    """Vertical shafts with straight walls. Returns -100 inside, 0 outside."""
+    return {
+        "type": "farlands:void_pit",
+        "cell_size": VOID_PIT_CELL if cell is None else cell,
+        "pit_size": VOID_PIT_SIZE if size is None else size,
+        "chance": VOID_PIT_CHANCE if chance is None else chance,
+        "salt": VOID_PIT_SALT if salt is None else salt,
+        "shape_variety": variety,
     }
 
 
-def void_pit():
-    """Square vertical shafts with straight walls. Returns -100 inside, 0 outside."""
+def cavern_layers():
+    """Floor slabs stacked up the whole world. Computed in Java: see CavernLayersDensityFunction."""
     return {
-        "type": "farlands:void_pit",
-        "cell_size": VOID_PIT_CELL,
-        "pit_size": VOID_PIT_SIZE,
-        "chance": VOID_PIT_CHANCE,
-        "salt": VOID_PIT_SALT,
+        "type": "farlands:cavern_layers",
+        "period": CAVERNS_PERIOD,
+        "thickness": CAVERNS_THICKNESS,
+        "base_y": CAVERNS_BASE_Y,
     }
 
 
@@ -232,6 +263,33 @@ def classic_density():
     return add(fill, add(main, detail))
 
 
+def caverns_density():
+    """
+    Tier after tier of enormous open cave, floor slabs between them, the top tier with no roof.
+
+    The slab stack itself is exact (Java, a function of Y), so the tier height is the number you
+    typed. Everything that makes it not look like a parking garage is added on top:
+      wobble  - long waves that lift and drop whole floors by ten blocks or so
+      detail  - short roughness on the same surfaces
+      roof    - a gradient that goes hard negative above CAVERNS_TOP_Y, so the last tier is open
+                to the sky instead of capped. This is the "пещеры, вышедшие на поверхность" part.
+      shafts  - void pits, but wider, rarer and of varying shape, straight through every tier.
+                VoidShaftClear then removes the bedrock and the aquifer water underneath them.
+    """
+    layers = cavern_layers()
+    wobble = mul(noise("farlands:cavern_wobble", 1.0, 1.0), const(CAVERNS_WOBBLE_AMP))
+    detail = mul(noise("farlands:cavern_detail", 1.0, 1.0), const(CAVERNS_DETAIL_AMP))
+    roof = gradient(CAVERNS_TOP_Y, 0.0, CAVERNS_TOP_Y + CAVERNS_OPEN_SPAN, -14.0)
+    shafts = void_pit(
+        cell=CAVERNS_PIT_CELL,
+        size=CAVERNS_PIT_SIZE,
+        chance=CAVERNS_PIT_CHANCE,
+        salt=CAVERNS_PIT_SALT,
+        variety=True,
+    )
+    return add(add(layers, add(wobble, detail)), add(roof, shafts))
+
+
 def void_density():
     """test_void: nothing but levitating debris. Two sizes so it does not read as uniform."""
     big = add(
@@ -263,8 +321,7 @@ def main():
     zones = fetch("overworld")
     router = zones["noise_router"]
     router["final_density"] = in_zone_typed(
-        corrupted_density(),
-        classic_density(),
+        [corrupted_density(), classic_density(), caverns_density()],
         router["final_density"],
     )
     # Ridges left vanilla: biome source uses the overworld preset, so biomes are fully
