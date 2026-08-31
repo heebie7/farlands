@@ -3,9 +3,19 @@
 Minecraft 1.21.11 Fabric mod. Rare corrupted zones with broken terrain generation, inspired by
 the classic Farlands bug.
 
-**v0.1.0 is data-only** — no Java yet. It ships two test dimensions used for tuning what a
-corrupted zone actually looks like. The real target (zones scattered through the overworld via
-TerraBlender) comes after the terrain looks right.
+It ships two test dimensions used for tuning what a corrupted zone actually looks like. The real
+target (zones scattered through the overworld via TerraBlender) comes after the terrain looks
+right.
+
+**Three zone types**, picked per zone by the same hash that places it:
+
+| Type | What it is |
+|---|---|
+| `spires` | Ground yanked into tall sharp needles, gouged into pits between them, plus needles left hanging in the air |
+| `classic` | Solid mass from bedrock to the height limit, carved into Swiss cheese by noise that ignores Z, so tunnels run along one axis |
+| `caverns` | Tier after tier of enormous open cave the whole way up, thin floors between them, no roof at all on the top tier. Shafts drop through every tier, through the bedrock, into real void. Towers of trial chambers stand in it, room piled on room, 150-250 blocks tall |
+
+`/farlands locate [spires|classic|caverns]` points at the nearest one and prints a `/tp` for it.
 
 ## Trying it
 
@@ -24,12 +34,11 @@ and you should hit one.
 
 ### test_zones
 
-Vanilla overworld terrain, except inside corrupted zones, where the ground gets yanked into
-packed spires and slammed into pits. Ordinary earth and stone, grass and trees on top — the
-spires *are* the terrain, not decoration.
+Vanilla overworld terrain, except inside corrupted zones. Ordinary earth and stone, grass and
+trees on top — the broken shapes *are* the terrain, not decoration.
 
-The zone and the biome (`farlands:spires`) always line up exactly: the same mask noise drives
-both terrain shape and biome choice.
+Since v0.6.0 zones keep the vanilla biome the terrain lands in: a zone in a desert is sand, in
+ice spikes it is ice. Only `final_density` is patched.
 
 ### test_void
 
@@ -49,6 +58,14 @@ Most knobs live at the top of [`tools/gen_noise_settings.py`](tools/gen_noise_se
 | `PIT_DEPTH` | How deep it gouges between the needles |
 | `BASE_SURFACE_Y` | Where the ground sits between needles |
 | `FLOAT_BOTTOM` / `FLOAT_TOP` / `FLOAT_CUTOFF` | Height band and rarity of the floating needles |
+| `CAVERNS_PERIOD` / `CAVERNS_THICKNESS` | Blocks between caverns floors, and how thick a floor is. Thickness under ~12 aliases against the 8-block noise grid |
+| `CAVERNS_TOP_Y` / `CAVERNS_OPEN_SPAN` | Where the caverns roof stops existing, and over how many blocks it fades |
+| `CAVERNS_WOBBLE_AMP` / `CAVERNS_DETAIL_AMP` | How far the floors are warped off flat, long wave and short |
+| `CAVERNS_PIT_*` | Caverns shafts. **Must match the constants in `VoidShaftClear.java`**, which removes the bedrock and the aquifer water inside them |
+
+Towers have their own generator: [`tools/gen_caverns_towers.py`](tools/gen_caverns_towers.py) —
+tier count, tier spacing, jigsaw depth, sideways lean, and the per-tier frequency taper that
+gives towers different heights.
 
 Needle spacing is not in that file — it is `firstOctave` in
 `worldgen/noise/spire_a.json` and `spire_b.json`. More negative = further apart.
@@ -81,10 +98,8 @@ changes still need a build.
 
 - `final_density` — terrain shape. Wrapped in `range_choice` on the zone mask: our math inside
   a zone, untouched vanilla outside.
-- `ridges` — biome placement only, never terrain. Forced to a flat `1.0` inside zones and
-  `-1.0` outside, and `dimension/test_zones.json` splits its two biomes on exactly that.
-
-Terrain and biome cannot drift apart, because both read the same mask.
+`ridges` used to be patched too, to force our own biome onto the zone. Dropped in v0.6.0:
+zones take the vanilla biome instead.
 
 The mask itself is `farlands:zone_grid`, our own density function type in Java. Vanilla density
 functions cannot see raw X/Z, so every mask built out of them follows noise contours and comes
@@ -106,3 +121,19 @@ Minecraft 1.21.11 is not what the wiki documents (it is on 26.x now). Things tha
   exist here — they arrived in 26.3. Subtract with `add` + `mul` by −1.
 - `invert` still has its old name (`reciprocal` is 26.3).
 - On misode.github.io, set the version in the header or it generates JSON we cannot load.
+
+## Structures gated to a zone
+
+Structures are normally kept in place by their biome list, and our zones have no biome of their
+own. So the caverns towers use `farlands:zone_spread`, a `StructurePlacement` that wraps a real
+`random_spread` and asks `ZoneGridDensityFunction.zoneTypeAt` first — the same function the
+terrain mask, `/farlands locate` and both features already use.
+
+Every tier of a tower shares one salt, so their placements land on the same chunk and the rooms
+pile up. Nothing in the game stops two different structures from occupying the same blocks: the
+no-overlap check only runs inside a single `StructureStart`. Overlapping `start_height` ranges
+are therefore what makes rooms grow into each other, on purpose.
+
+`pool_aliases` is copied verbatim from vanilla `trial_chambers.json` into every tier. It is not
+decoration — the chamber pools reference alias pools such as
+`minecraft:trial_chambers/spawner/contents/melee` that do not exist as files.
