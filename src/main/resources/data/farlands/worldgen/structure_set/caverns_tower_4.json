@@ -1,0 +1,18 @@
+{
+  "placement": {
+    "type": "farlands:zone_spread",
+    "spacing": 34,
+    "separation": 12,
+    "salt": 8412577,
+    "zone_type": 2,
+    "frequency": 1.0,
+    "offset_x": -1,
+    "offset_z": 0
+  },
+  "structures": [
+    {
+      "structure": "farlands:caverns_tower_4",
+      "weight": 1
+    }
+  ]
+}
