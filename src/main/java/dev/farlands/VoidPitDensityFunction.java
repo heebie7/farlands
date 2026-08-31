@@ -7,32 +7,43 @@ import net.minecraft.util.dynamic.CodecHolder;
 import net.minecraft.world.gen.densityfunction.DensityFunction;
 
 /**
- * Vertical shafts with dead-straight walls, punched clean through whatever terrain is above them.
- * Returns -100.0 inside a shaft (overwhelms any terrain density), 0.0 outside. Combined with the
- * terrain via add().
+ * Vertical shafts punched clean through whatever terrain is above them. Returns -100.0 inside a
+ * shaft (overwhelms any terrain density), 0.0 outside. Combined with the terrain via add().
  *
- * Two modes:
- *  - plain (shape_variety = false, the default, what the spires zone has always used): one square
- *    of a fixed size per cell.
- *  - varied (shape_variety = true, used by caverns): size is rolled per cell between half and one
- *    and a half of pit_size, and the footprint is one of four shapes - square, a rectangle drawn
- *    out along X, the same along Z, or two squares overlapping corner to corner.
+ * Two footprint shapes, chosen by the "shape" field:
+ *
+ *  - "square": one axis-aligned square of a fixed size per cell. This is the small, dense pitting
+ *    between the spires that has been in the mod since v0.3 and that Т likes; left alone.
+ *
+ *  - "organic": a closed blob with no straight edges anywhere. Radius varies with the angle around
+ *    the centre through three harmonics whose phases and amplitude come out of the cell hash, so
+ *    the outline is lobed and different in every cell, and the wall it leaves is a cliff at an
+ *    arbitrary angle rather than a corner of a box. Т on the v0.8.0 shafts: "провалы - просто
+ *    квадраты... хотелось бы, чтобы они выглядели больше как часть генерации, абстрактная форма,
+ *    которая просто вот так обрывается, как обрыв".
  *
  * Deliberately NOT here: a per-block ragged edge. Density functions are sampled on the noise grid
  * (4 blocks horizontally in the overworld settings) and interpolated between samples, so anything
- * finer than that grid does not survive to become blocks - it just aliases. Shape variety works
- * because it moves whole walls by tens of blocks.
+ * finer than that grid does not survive to become blocks - it just aliases. The harmonics work
+ * because they move whole walls by tens of blocks.
  *
  * The footprint test is a public static so the feature that clears bedrock and aquifer water out
- * of the shaft (VoidShaftClear) tests exactly the same volume the terrain was carved from.
+ * of a shaft (VoidShaftClear) tests exactly the same volume the terrain was carved from.
  */
 public final class VoidPitDensityFunction implements DensityFunction.Base {
+	public static final int SHAPE_SQUARE = 0;
+	public static final int SHAPE_ORGANIC = 1;
+
+	private static final double TAU = Math.PI * 2.0;
+	/** Largest multiple of the base radius the harmonics can reach. Used for the cheap early-out. */
+	private static final double ORGANIC_REACH = 1.8;
+
 	public static final MapCodec<VoidPitDensityFunction> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.INT.fieldOf("cell_size").forGetter(f -> f.cellSize),
 			Codec.INT.fieldOf("pit_size").forGetter(f -> f.pitSize),
 			Codec.DOUBLE.fieldOf("chance").forGetter(f -> f.chance),
 			Codec.INT.optionalFieldOf("salt", 0).forGetter(f -> f.salt),
-			Codec.BOOL.optionalFieldOf("shape_variety", false).forGetter(f -> f.shapeVariety)
+			Codec.STRING.optionalFieldOf("shape", "square").forGetter(f -> f.shapeName)
 	).apply(instance, VoidPitDensityFunction::new));
 
 	public static final CodecHolder<VoidPitDensityFunction> CODEC_HOLDER = CodecHolder.of(CODEC);
@@ -41,18 +52,24 @@ public final class VoidPitDensityFunction implements DensityFunction.Base {
 	private final int pitSize;
 	private final double chance;
 	private final int salt;
-	private final boolean shapeVariety;
+	private final String shapeName;
+	private final int shape;
 
-	public VoidPitDensityFunction(int cellSize, int pitSize, double chance, int salt, boolean shapeVariety) {
+	public VoidPitDensityFunction(int cellSize, int pitSize, double chance, int salt, String shapeName) {
 		this.cellSize = Math.max(8, cellSize);
 		this.pitSize = Math.max(1, pitSize);
 		this.chance = chance;
 		this.salt = salt;
-		this.shapeVariety = shapeVariety;
+		this.shapeName = shapeName;
+		this.shape = shapeId(shapeName);
+	}
+
+	public static int shapeId(String name) {
+		return "organic".equals(name) ? SHAPE_ORGANIC : SHAPE_SQUARE;
 	}
 
 	/** True if this block column falls inside a shaft. Shared with VoidShaftClear. */
-	public static boolean inPit(int x, int z, int cellSize, int pitSize, double chance, int salt, boolean shapeVariety) {
+	public static boolean inPit(int x, int z, int cellSize, int pitSize, double chance, int salt, int shape) {
 		cellSize = Math.max(8, cellSize);
 		pitSize = Math.max(1, pitSize);
 
@@ -65,53 +82,59 @@ public final class VoidPitDensityFunction implements DensityFunction.Base {
 		int localX = Math.floorMod(x, cellSize);
 		int localZ = Math.floorMod(z, cellSize);
 
-		if (!shapeVariety) {
+		if (shape != SHAPE_ORGANIC) {
 			int pitX = (int) ((h >>> 16) & 0xFFL) * (cellSize - pitSize) / 256;
 			int pitZ = (int) ((h >>> 24) & 0xFFL) * (cellSize - pitSize) / 256;
-			return inRect(localX, localZ, pitX, pitZ, pitSize, pitSize);
+			return localX >= pitX && localX < pitX + pitSize
+					&& localZ >= pitZ && localZ < pitZ + pitSize;
 		}
 
-		// Half to one-and-a-half of pit_size, so shafts read as individuals rather than a stamp.
-		int size = Math.max(4, pitSize / 2 + (int) (((h >>> 8) & 0xFFL) * pitSize / 256L));
-		int mode = (int) ((h >>> 56) & 3L);
+		// Half to one-and-a-half of the nominal radius, so shafts read as individuals.
+		double baseRadius = Math.max(3.0, pitSize * 0.5 * (0.6 + ((h >>> 8) & 0xFFL) / 255.0));
+		// Keep the whole blob inside its cell: a blob clipped by the cell boundary would leave the
+		// dead-straight edge this shape exists to avoid.
+		double margin = baseRadius * (ORGANIC_REACH + 0.1);
+		double room = Math.max(1.0, cellSize - 2.0 * margin);
+		double centreX = margin + ((h >>> 16) & 0xFFL) / 256.0 * room;
+		double centreZ = margin + ((h >>> 24) & 0xFFL) / 256.0 * room;
 
-		int width = size;
-		int depth = size;
-		if (mode == 1) {
-			width = size * 2;
-			depth = Math.max(4, size / 2);
-		} else if (mode == 2) {
-			width = Math.max(4, size / 2);
-			depth = size * 2;
-		}
+		double dx = localX + 0.5 - centreX;
+		double dz = localZ + 0.5 - centreZ;
+		double distanceSquared = dx * dx + dz * dz;
 
-		int span = Math.max(width, depth) * 2;
-		int room = Math.max(1, cellSize - span);
-		int pitX = (int) ((h >>> 16) & 0xFFL) * room / 256;
-		int pitZ = (int) ((h >>> 24) & 0xFFL) * room / 256;
+		double reach = baseRadius * ORGANIC_REACH;
+		if (distanceSquared > reach * reach) return false;              // cheap out for most samples
+		if (distanceSquared < baseRadius * 0.2 * baseRadius * 0.2) return true;
 
-		if (inRect(localX, localZ, pitX, pitZ, width, depth)) return true;
+		double phase1 = ((h >>> 32) & 0x3FL) / 64.0 * TAU;
+		double phase2 = ((h >>> 38) & 0x3FL) / 64.0 * TAU;
+		double phase3 = ((h >>> 44) & 0x3FL) / 64.0 * TAU;
+		double lobe = 0.22 + ((h >>> 50) & 0x1FL) / 31.0 * 0.22;
 
-		// Mode 3 is two squares overlapping corner to corner: a wide irregular hole rather than a
-		// clean box, and the only mode where the walls are not one straight run.
-		if (mode == 3) {
-			int shift = Math.max(2, size / 2);
-			return inRect(localX, localZ, pitX + shift, pitZ + shift, width, depth);
-		}
-		return false;
-	}
+		double angle = Math.atan2(dz, dx);
+		double radius = baseRadius * (1.0
+				+ lobe * Math.sin(2.0 * angle + phase1)
+				+ 0.20 * Math.sin(3.0 * angle + phase2)
+				+ 0.11 * Math.sin(5.0 * angle + phase3));
 
-	private static boolean inRect(int x, int z, int originX, int originZ, int width, int depth) {
-		return x >= originX && x < originX + width && z >= originZ && z < originZ + depth;
+		return distanceSquared < radius * radius;
 	}
 
 	@Override
 	public double sample(NoisePos pos) {
-		return inPit(pos.blockX(), pos.blockZ(), cellSize, pitSize, chance, salt, shapeVariety) ? -100.0 : 0.0;
+		return inPit(pos.blockX(), pos.blockZ(), cellSize, pitSize, chance, salt, shape) ? -100.0 : 0.0;
 	}
 
+	/**
+	 * Same fixed-point trap as ZoneGridDensityFunction.hash: without the leading constant, cell
+	 * (0,0) with salt 0 hashes to exactly 0, which passes every chance test and rolls the smallest
+	 * pit at offset 0. One shaft in the world would be identical in every world.
+	 */
 	public static long hash(int cellX, int cellZ, int salt) {
-		long h = cellX * 0x9E3779B97F4A7C15L ^ cellZ * 0xC2B2AE3D27D4EB4FL ^ (long) salt * 0x165667B19E3779F9L;
+		long h = 0x27D4EB2F165667C5L
+				^ cellX * 0x9E3779B97F4A7C15L
+				^ cellZ * 0xC2B2AE3D27D4EB4FL
+				^ (long) salt * 0x165667B19E3779F9L;
 		h ^= h >>> 33;
 		h *= 0xFF51AFD7ED558CCDL;
 		h ^= h >>> 33;

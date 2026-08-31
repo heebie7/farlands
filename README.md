@@ -13,9 +13,12 @@ right.
 |---|---|
 | `spires` | Ground yanked into tall sharp needles, gouged into pits between them, plus needles left hanging in the air |
 | `classic` | Solid mass from bedrock to the height limit, carved into Swiss cheese by noise that ignores Z, so tunnels run along one axis |
-| `caverns` | Tier after tier of enormous open cave the whole way up, thin floors between them, no roof at all on the top tier. Shafts drop through every tier, through the bedrock, into real void. Towers of trial chambers stand in it, room piled on room, 150-250 blocks tall |
+| `caverns` | Tier after tier of enormous open cave the whole way up, thick rolling floors between them, no roof at all on the top tier. Blob-shaped shafts drop through every tier, through the bedrock, into real void. Towers of trial chambers stand in it, room piled on room, 190-290 blocks tall, roughly one every 288 blocks |
 
 `/farlands locate [spires|classic|caverns]` points at the nearest one and prints a `/tp` for it.
+`/farlands towers` prints where the next caverns tower is *predicted* to stand, straight out of the
+placement arithmetic — useful for telling "the placement never fired" apart from "the structure
+failed to build" without reading a log.
 
 ## Trying it
 
@@ -61,7 +64,8 @@ Most knobs live at the top of [`tools/gen_noise_settings.py`](tools/gen_noise_se
 | `CAVERNS_PERIOD` / `CAVERNS_THICKNESS` | Blocks between caverns floors, and how thick a floor is. Thickness under ~12 aliases against the 8-block noise grid |
 | `CAVERNS_TOP_Y` / `CAVERNS_OPEN_SPAN` | Where the caverns roof stops existing, and over how many blocks it fades |
 | `CAVERNS_WOBBLE_AMP` / `CAVERNS_DETAIL_AMP` | How far the floors are warped off flat, long wave and short |
-| `CAVERNS_PIT_*` | Caverns shafts. **Must match the constants in `VoidShaftClear.java`**, which removes the bedrock and the aquifer water inside them |
+| `CAVERNS_PIT_*` / `SPIRES_VOID_*` | Void shafts in caverns and in spires. **Must match `VoidShaftClear.SHAFTS`**, which removes the bedrock and the aquifer water inside them |
+| `SPIRE_XZ_SCALE` | Horizontal squeeze on the spire ridge noise. Higher = ridge crossings closer together = more needles per area |
 
 Towers have their own generator: [`tools/gen_caverns_towers.py`](tools/gen_caverns_towers.py) —
 tier count, tier spacing, jigsaw depth, sideways lean, and the per-tier frequency taper that

@@ -47,12 +47,28 @@ FLOAT_CUTOFF = 1.8   # higher = fewer floaters (the column value has to beat thi
 
 # --- spire shape ---
 SPIRE_THICKNESS = 0.07  # offset added to ridge before cubing; widens the needles. 0 = original
+# Т 2026-08-31: "количество спайрс как будто бы уменьшено... возможно, это от увеличения их ширины
+# - их просто меньше умещается. Это тоже можно немного увеличить." Widening the needles in v0.7.0
+# did cost spike count: needles stand where two ridge lines cross, and fatter needles eat their
+# neighbours. Tightening the ridge noise puts the crossings closer together. 1.0 -> 1.2 is about a
+# third more crossings per area; deliberately not more, he said "немного".
+SPIRE_XZ_SCALE = 1.2
 
 # --- void pits (straight-walled shafts to the abyss, between spires) ---
 VOID_PIT_CELL = 48       # one potential pit per NxN area
 VOID_PIT_SIZE = 5        # width of square shaft in blocks
 VOID_PIT_CHANCE = 0.3    # chance a cell has a pit
 VOID_PIT_SALT = 42
+
+# --- spires: real holes into the void, abstract outline, bedrock punched out ---
+# Т 2026-08-31: "дыры в пустоту не такого большого размера, но тоже абстрактных форм - добавить в
+# биом Spires... чтобы сделать падение более опасным: не только урон от падения, но и полная смерть
+# от пустоты". Smaller calibre than the caverns shafts, same organic footprint.
+# ⚠ MUST MATCH the spires entry of VoidShaftClear.SHAFTS.
+SPIRES_VOID_CELL = 260
+SPIRES_VOID_SIZE = 18
+SPIRES_VOID_CHANCE = 0.55
+SPIRES_VOID_SALT = 5501
 
 # --- what happens inside a CLASSIC zone ---
 # Swiss cheese wall from bedrock to height limit, tunnels along Z axis.
@@ -68,20 +84,34 @@ CLASSIC_DETAIL_AMP = 3.0
 # Т, 2026-08-31: "вся зона состоит из сплошных слоев больших пещер". Floors every CAVERNS_PERIOD
 # blocks, thin, with a huge open cave between each pair, all the way up. The top tier has no roof
 # at all - the zone is an open wound seen from the sky.
-CAVERNS_PERIOD = 48        # blocks between one floor and the next
-CAVERNS_THICKNESS = 14     # how thick a floor slab is. Keep well above the 8-block noise grid.
+# Т 2026-08-31 after the v0.8.0 playtest, two complaints, both here:
+#   "террейн очень побитый и резкий, абсолютно непредсказуемый. Лучше сделать больше похоже на
+#    обычную генерацию пещер или поверхности - выглядит очень грубо"
+#   "слои-полы слишком тонкие, хотелось бы их в два с половиной раза потолще, чтобы они правда
+#    ощущались как сильные слои"
+# So: thickness 14 -> 35 (his 2.5x), and the period grows with it, otherwise a 35-block floor
+# inside a 48-block period would leave 13 blocks of cave and the tiers would stop being caves.
+# Roughness: the short-wave DETAIL term is what made the floors look chewed - at amplitude 0.7 it
+# was moving a surface by ~5 blocks every 8 blocks of travel. It drops to a tenth of that and its
+# noise moves two octaves down; the long WOBBLE stays but slows down too, so floors roll instead of
+# jitter.
+CAVERNS_PERIOD = 74        # blocks between one floor and the next
+CAVERNS_THICKNESS = 35     # how thick a floor slab is. Keep well above the 8-block noise grid.
 CAVERNS_BASE_Y = -60       # a floor is centred here, so the world floor is solid to stand on
-CAVERNS_TOP_Y = 140        # last complete tier; above this the roof is eaten away
-CAVERNS_OPEN_SPAN = 35     # blocks over which the roof fades out, so the rim is ragged not sawn
-CAVERNS_WOBBLE_AMP = 2.0   # long-wave warp of the floors. 1.0 ~ moves a surface by thickness/2.
-CAVERNS_DETAIL_AMP = 0.7   # short-wave roughness on the same surfaces
+CAVERNS_TOP_Y = 125        # last complete tier; above this the roof is eaten away
+CAVERNS_OPEN_SPAN = 40     # blocks over which the roof fades out, so the rim is ragged not sawn
+CAVERNS_WOBBLE_AMP = 1.1   # long-wave warp of the floors. 1.0 ~ moves a surface by thickness/2.
+CAVERNS_DETAIL_AMP = 0.12  # short-wave roughness on the same surfaces
 
 # --- caverns shafts: straight down, through every tier, through the bedrock, into nothing ---
 # ⚠ MUST MATCH the CAVERNS_PIT_* constants in VoidShaftClear.java, which is what removes the
 # bedrock lid and the aquifer water the density function cannot see.
-CAVERNS_PIT_CELL = 544     # one shaft per 544x544, same rhythm as the towers (spacing 34 chunks)
-CAVERNS_PIT_SIZE = 34      # nominal width; shape_variety rolls 0.5x..1.5x and picks a shape
-CAVERNS_PIT_CHANCE = 0.9
+# Т: "сделать их значительно чаще. Но не слишком часто" + "абстрактная форма, которая просто вот
+# так обрывается, как обрыв". Cell 544 -> 300 is 3.3x more shafts by area; the footprint is now a
+# lobed blob (see VoidPitDensityFunction, shape "organic") instead of a rectangle.
+CAVERNS_PIT_CELL = 300     # one shaft per 300x300
+CAVERNS_PIT_SIZE = 40      # nominal diameter; the organic shape rolls 0.6x..1.6x around it
+CAVERNS_PIT_CHANCE = 0.85
 CAVERNS_PIT_SALT = 7717
 
 
@@ -124,24 +154,26 @@ def gradient(from_y, from_value, to_y, to_value):
     }
 
 
-def ridge(name, offset=0.0):
+def ridge(name, offset=0.0, xz=1.0):
     """
     1 - |noise|. Peaks at 1.0 exactly where the noise crosses zero, which is a thin winding line,
     and falls off sharply either side. This is what makes edges sharp instead of rounded - plain
     noise has no sharp features anywhere, no matter how hard you scale it.
     Offset > 0 widens the peak, making the resulting needle thicker.
+    xz > 1 squeezes the noise horizontally, so the crossings - and therefore the needles - come
+    closer together without changing their shape.
     """
-    r = add(const(1.0), mul(absolute(noise(name)), const(-1.0)))
+    r = add(const(1.0), mul(absolute(noise(name, xz)), const(-1.0)))
     return add(r, const(offset)) if offset else r
 
 
-def needle(name_a, name_b, thickness=0.0):
+def needle(name_a, name_b, thickness=0.0, xz=1.0):
     """
     Two ridge line-sets multiplied together. Each one alone gives walls; where two independent
     sets cross you get isolated points, and cubing each one first makes those points narrow.
     Result is 0..1, near zero almost everywhere, spiking to 1 at the crossings.
     """
-    return mul(cube(ridge(name_a, thickness)), cube(ridge(name_b, thickness)))
+    return mul(cube(ridge(name_a, thickness, xz)), cube(ridge(name_b, thickness, xz)))
 
 
 def zone_grid():
@@ -186,15 +218,15 @@ def in_zone_typed(type_fns, vanilla_fn):
     return node
 
 
-def void_pit(cell=None, size=None, chance=None, salt=None, variety=False):
-    """Vertical shafts with straight walls. Returns -100 inside, 0 outside."""
+def void_pit(cell=None, size=None, chance=None, salt=None, shape="square"):
+    """Vertical shafts. Returns -100 inside, 0 outside. shape: "square" or "organic"."""
     return {
         "type": "farlands:void_pit",
         "cell_size": VOID_PIT_CELL if cell is None else cell,
         "pit_size": VOID_PIT_SIZE if size is None else size,
         "chance": VOID_PIT_CHANCE if chance is None else chance,
         "salt": VOID_PIT_SALT if salt is None else salt,
-        "shape_variety": variety,
+        "shape": shape,
     }
 
 
@@ -229,9 +261,22 @@ def corrupted_density():
     frac = (BASE_SURFACE_Y - (-64)) / span
     base = gradient(-64, 1.0, 320, round(-1.0 / frac + 1.0, 3))
 
-    spires = mul(needle("farlands:spire_a", "farlands:spire_b", SPIRE_THICKNESS), const(SPIRE_HEIGHT))
+    spires = mul(
+        needle("farlands:spire_a", "farlands:spire_b", SPIRE_THICKNESS, SPIRE_XZ_SCALE),
+        const(SPIRE_HEIGHT),
+    )
     pits = mul(needle("farlands:pit_a", "farlands:pit_b"), const(-PIT_DEPTH))
-    terrain = add(base, add(spires, add(pits, void_pit())))
+    voids = add(
+        void_pit(),
+        void_pit(
+            cell=SPIRES_VOID_CELL,
+            size=SPIRES_VOID_SIZE,
+            chance=SPIRES_VOID_CHANCE,
+            salt=SPIRES_VOID_SALT,
+            shape="organic",
+        ),
+    )
+    terrain = add(base, add(spires, add(pits, voids)))
 
     # Floating spires: the same crossing-ridge trick, but with no height gradient, so the
     # column is solid all the way through the window and cut off flat at both ends.
@@ -285,7 +330,7 @@ def caverns_density():
         size=CAVERNS_PIT_SIZE,
         chance=CAVERNS_PIT_CHANCE,
         salt=CAVERNS_PIT_SALT,
-        variety=True,
+        shape="organic",
     )
     return add(add(layers, add(wobble, detail)), add(roof, shafts))
 

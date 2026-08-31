@@ -1,11 +1,13 @@
 {
   "placement": {
     "type": "farlands:zone_spread",
-    "spacing": 34,
-    "separation": 12,
+    "spacing": 18,
+    "separation": 5,
     "salt": 8412577,
     "zone_type": 2,
-    "frequency": 0.5,
+    "tier": 13,
+    "min_tiers": 11,
+    "max_tiers": 17,
     "offset_x": -1,
     "offset_z": 0
   },

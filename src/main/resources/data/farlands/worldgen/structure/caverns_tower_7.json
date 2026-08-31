@@ -4,18 +4,18 @@
   "step": "underground_structures",
   "terrain_adaptation": "none",
   "start_pool": "minecraft:trial_chambers/chambers/end",
-  "size": 4,
-  "max_distance_from_center": 48,
+  "size": 5,
+  "max_distance_from_center": 80,
   "use_expansion_hack": false,
   "liquid_settings": "ignore_waterlogging",
   "dimension_padding": 0,
   "start_height": {
     "type": "minecraft:uniform",
     "min_inclusive": {
-      "absolute": 67
+      "absolute": 65
     },
     "max_inclusive": {
-      "absolute": 75
+      "absolute": 73
     }
   },
   "pool_aliases": [

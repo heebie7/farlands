@@ -11,8 +11,8 @@ import net.minecraft.world.gen.feature.FeatureConfig;
 import net.minecraft.world.gen.feature.util.FeatureContext;
 
 /**
- * Makes the caverns shafts actually bottomless: clears bedrock and any standing fluid out of the
- * shaft footprint after the terrain is built.
+ * Makes the void shafts actually bottomless: clears bedrock and any standing fluid out of a shaft
+ * footprint after the terrain is built.
  *
  * A density function cannot do this on its own. The bedrock floor is written by a surface rule
  * (bedrock_floor in vanilla's overworld settings), long after final_density has had its say, so a
@@ -20,7 +20,9 @@ import net.minecraft.world.gen.feature.util.FeatureContext;
  * aquifers fill air below the local water table, so a shaft through a wet column comes out as a
  * very deep well instead of a hole. Both are removed here.
  *
- * Т asked for "пустота пустотная" - fall in and you die - so this exists.
+ * Т asked for "пустота пустотная" - fall in and you die - first for caverns (v0.8.0) and then for
+ * spires as well (v0.9.0: "дыры в пустоту не такого большого размера, но тоже абстрактных форм...
+ * чтобы сделать падение более опасным: не только урон от падения, но и полная смерть от пустоты").
  *
  * Only bedrock and fluids are touched, never solid blocks: a tower piece that happens to overlap a
  * shaft keeps its floor instead of being punched out from under itself.
@@ -28,16 +30,20 @@ import net.minecraft.world.gen.feature.util.FeatureContext;
  * Like WaterThinner this hangs on every overworld biome, so the zone test is the first line of
  * generate() and costs one hash outside a zone.
  *
- * ⚠ The shaft geometry constants below are the same numbers as the CAVERNS_PIT_* block in the
- * header of tools/gen_noise_settings.py. Change one, change the other, or this clears bedrock
- * where there is no shaft and leaves it where there is.
+ * ⚠ SHAFTS below must stay identical to the *_PIT_* block in the header of
+ * tools/gen_noise_settings.py, which is what the terrain is carved from. Change one, change the
+ * other, or this clears bedrock where there is no shaft and leaves it where there is.
  */
 public class VoidShaftClear extends Feature<VoidShaftClear.Config> {
-	public static final int CAVERNS_PIT_CELL = 544;
-	public static final int CAVERNS_PIT_SIZE = 34;
-	public static final double CAVERNS_PIT_CHANCE = 0.9;
-	public static final int CAVERNS_PIT_SALT = 7717;
-	public static final int CAVERNS_TYPE = 2;
+	/** One entry per zone type that has bedrock-piercing shafts. */
+	public record Shaft(int zoneType, int cellSize, int pitSize, double chance, int salt, int shape) {}
+
+	public static final Shaft[] SHAFTS = {
+			// caverns: wide holes, one per 300x300, straight through every tier
+			new Shaft(2, 300, 40, 0.85, 7717, VoidPitDensityFunction.SHAPE_ORGANIC),
+			// spires: smaller calibre, rarer, same abstract outline
+			new Shaft(0, 260, 18, 0.55, 5501, VoidPitDensityFunction.SHAPE_ORGANIC),
+	};
 
 	public record Config(int minY, int maxY) implements FeatureConfig {
 		public static final Codec<Config> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -53,9 +59,17 @@ public class VoidShaftClear extends Feature<VoidShaftClear.Config> {
 	@Override
 	public boolean generate(FeatureContext<Config> context) {
 		BlockPos origin = context.getOrigin();
-		if (ZoneGridDensityFunction.zoneTypeAt(origin.getX() + 8, origin.getZ() + 8) != CAVERNS_TYPE) {
-			return false;
+		int zone = ZoneGridDensityFunction.zoneTypeAt(origin.getX() + 8, origin.getZ() + 8);
+		if (zone < 0) return false;
+
+		Shaft shaft = null;
+		for (Shaft candidate : SHAFTS) {
+			if (candidate.zoneType() == zone) {
+				shaft = candidate;
+				break;
+			}
 		}
+		if (shaft == null) return false;
 
 		StructureWorldAccess world = context.getWorld();
 		Config config = context.getConfig();
@@ -68,8 +82,8 @@ public class VoidShaftClear extends Feature<VoidShaftClear.Config> {
 
 		for (int x = minX; x < minX + 16; x++) {
 			for (int z = minZ; z < minZ + 16; z++) {
-				if (!VoidPitDensityFunction.inPit(x, z, CAVERNS_PIT_CELL, CAVERNS_PIT_SIZE,
-						CAVERNS_PIT_CHANCE, CAVERNS_PIT_SALT, true)) {
+				if (!VoidPitDensityFunction.inPit(x, z, shaft.cellSize(), shaft.pitSize(),
+						shaft.chance(), shaft.salt(), shaft.shape())) {
 					continue;
 				}
 				for (int y = config.minY(); y <= config.maxY(); y++) {

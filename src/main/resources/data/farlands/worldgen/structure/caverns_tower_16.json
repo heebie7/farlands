@@ -12,10 +12,10 @@
   "start_height": {
     "type": "minecraft:uniform",
     "min_inclusive": {
-      "absolute": 184
+      "absolute": 218
     },
     "max_inclusive": {
-      "absolute": 192
+      "absolute": 226
     }
   },
   "pool_aliases": [

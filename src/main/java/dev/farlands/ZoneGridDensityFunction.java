@@ -113,8 +113,20 @@ public final class ZoneGridDensityFunction implements DensityFunction.Base {
 		return type < 0 ? 0.0 : type + 1.0;
 	}
 
+	/**
+	 * ⚠ The leading constant is not decoration. Without it, cell (0,0) with salt 0 mixes 0 ^ 0 ^ 0
+	 * = 0, and every avalanche step leaves zero alone: the hash comes out exactly 0. Zero passes
+	 * every rarity test, picks zone type 0, rolls the minimum rectangle and offset 0 - so the cell
+	 * containing world spawn was ALWAYS a spires zone occupying 0..750 x 0..750, centre exactly
+	 * 375, 375, in every world ever generated. That is what Т kept seeing ("Spires почти вплотную
+	 * к спавну, ровно 375,375, а Classic и Caverns всегда далеко"), and it was arithmetic, not
+	 * chance. Seeding the mix with a non-zero constant kills the fixed point.
+	 */
 	public static long hash(int cellX, int cellZ, int salt) {
-		long h = cellX * 0x9E3779B97F4A7C15L ^ cellZ * 0xC2B2AE3D27D4EB4FL ^ salt * 0x165667B19E3779F9L;
+		long h = 0x27D4EB2F165667C5L
+				^ cellX * 0x9E3779B97F4A7C15L
+				^ cellZ * 0xC2B2AE3D27D4EB4FL
+				^ salt * 0x165667B19E3779F9L;
 		h ^= h >>> 33;
 		h *= 0xFF51AFD7ED558CCDL;
 		h ^= h >>> 33;

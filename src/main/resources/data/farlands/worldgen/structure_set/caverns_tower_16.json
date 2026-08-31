@@ -5,15 +5,15 @@
     "separation": 5,
     "salt": 8412577,
     "zone_type": 2,
-    "tier": 11,
+    "tier": 16,
     "min_tiers": 11,
     "max_tiers": 17,
-    "offset_x": 0,
-    "offset_z": 1
+    "offset_x": -1,
+    "offset_z": -1
   },
   "structures": [
     {
-      "structure": "farlands:caverns_tower_11",
+      "structure": "farlands:caverns_tower_16",
       "weight": 1
     }
   ]
