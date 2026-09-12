@@ -46,16 +46,16 @@ public class ZoneSpreadPlacement extends StructurePlacement {
 	 * ⚠ Must match the SPACING / SEPARATION / SALT in tools/gen_caverns_towers.py. Kept here so
 	 * /farlands towers predicts the same columns the generator builds.
 	 */
-	public static final int TOWER_SPACING = 18;
-	public static final int TOWER_SEPARATION = 5;
+	public static final int TOWER_SPACING = 12;
+	public static final int TOWER_SEPARATION = 3;
 	public static final int TOWER_SALT = 8412577;
 	public static final int TOWER_HEIGHT_SALT = 55311;
 	public static final int CAVERNS_TYPE = 2;
 	/** Geometry of the tier stack, mirrored from the same script. Only /farlands towers reads it. */
 	public static final int TOWER_BASE_Y = -50;
-	public static final int TOWER_TIER_STEP = 17;
-	public static final int TOWER_MIN_TIERS = 11;
-	public static final int TOWER_MAX_TIERS = 17;
+	public static final int TOWER_TIER_STEP = 10;
+	public static final int TOWER_MIN_TIERS = 20;
+	public static final int TOWER_MAX_TIERS = 30;
 
 	public static final MapCodec<ZoneSpreadPlacement> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.INT.fieldOf("spacing").forGetter(p -> p.spacing),

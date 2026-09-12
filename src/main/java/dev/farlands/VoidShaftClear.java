@@ -39,8 +39,8 @@ public class VoidShaftClear extends Feature<VoidShaftClear.Config> {
 	public record Shaft(int zoneType, int cellSize, int pitSize, double chance, int salt, int shape) {}
 
 	public static final Shaft[] SHAFTS = {
-			// caverns: wide holes, one per 300x300, straight through every tier
-			new Shaft(2, 300, 40, 0.85, 7717, VoidPitDensityFunction.SHAPE_ORGANIC),
+			// caverns: wide holes, one per 180x180, straight through every tier
+			new Shaft(2, 180, 40, 0.92, 7717, VoidPitDensityFunction.SHAPE_ORGANIC),
 			// spires: smaller calibre, rarer, same abstract outline
 			new Shaft(0, 260, 18, 0.55, 5501, VoidPitDensityFunction.SHAPE_ORGANIC),
 	};

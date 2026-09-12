@@ -95,10 +95,10 @@ CLASSIC_DETAIL_AMP = 3.0
 # was moving a surface by ~5 blocks every 8 blocks of travel. It drops to a tenth of that and its
 # noise moves two octaves down; the long WOBBLE stays but slows down too, so floors roll instead of
 # jitter.
-CAVERNS_PERIOD = 74        # blocks between one floor and the next
-CAVERNS_THICKNESS = 35     # how thick a floor slab is. Keep well above the 8-block noise grid.
+CAVERNS_PERIOD = 48        # blocks between one floor and the next
+CAVERNS_THICKNESS = 20     # how thick a floor slab is. Keep well above the 8-block noise grid.
 CAVERNS_BASE_Y = -60       # a floor is centred here, so the world floor is solid to stand on
-CAVERNS_TOP_Y = 125        # last complete tier; above this the roof is eaten away
+CAVERNS_TOP_Y = 200        # last complete tier; above this the roof is eaten away
 CAVERNS_OPEN_SPAN = 40     # blocks over which the roof fades out, so the rim is ragged not sawn
 CAVERNS_WOBBLE_AMP = 1.1   # long-wave warp of the floors. 1.0 ~ moves a surface by thickness/2.
 CAVERNS_DETAIL_AMP = 0.12  # short-wave roughness on the same surfaces
@@ -109,9 +109,9 @@ CAVERNS_DETAIL_AMP = 0.12  # short-wave roughness on the same surfaces
 # Т: "сделать их значительно чаще. Но не слишком часто" + "абстрактная форма, которая просто вот
 # так обрывается, как обрыв". Cell 544 -> 300 is 3.3x more shafts by area; the footprint is now a
 # lobed blob (see VoidPitDensityFunction, shape "organic") instead of a rectangle.
-CAVERNS_PIT_CELL = 300     # one shaft per 300x300
+CAVERNS_PIT_CELL = 180     # one shaft per 180x180
 CAVERNS_PIT_SIZE = 40      # nominal diameter; the organic shape rolls 0.6x..1.6x around it
-CAVERNS_PIT_CHANCE = 0.85
+CAVERNS_PIT_CHANCE = 0.92
 CAVERNS_PIT_SALT = 7717
 
 

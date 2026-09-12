@@ -58,32 +58,32 @@ CAVERNS_ZONE_TYPE = 2      # index of "caverns" in ZoneGridDensityFunction.TYPE_
 
 # ⚠ SPACING / SEPARATION / SALT / TIER_* / MIN_TIERS must match the TOWER_* constants in
 # ZoneSpreadPlacement.java, which is what /farlands towers predicts from.
-TIERS = 17                 # how many rooms a full-height tower can be made of
-MIN_TIERS = 11             # shortest tower; height is rolled between MIN_TIERS and TIERS
-TIER_STEP = 17             # blocks between one tier and the next. Chamber is ~20 tall -> overlap.
+TIERS = 30                 # how many rooms a full-height tower can be made of
+MIN_TIERS = 20             # shortest tower; height is rolled between MIN_TIERS and TIERS
+TIER_STEP = 10             # blocks between one tier and the next. Chamber is ~20 tall -> heavy overlap.
 TIER_BASE_Y = -50          # centre of the bottom tier
-TIER_JITTER = 4            # each tier's start height is uniform over +/- this
+TIER_JITTER = 3            # each tier's start height is uniform over +/- this
 
 # Т v0.8.0: "их просто не появляется... я ожидал увидеть их МНОГО и весьма видимых". At spacing 34
 # a zone held about five towers, nine of whose fifteen tiers sat under the cavern roof, so from the
 # air the zone read as empty. 34 -> 18 chunks is one tower per ~288 blocks: roughly sixteen per
 # average zone, and the tier stack now runs to y ~222, well clear of the terrain.
-SPACING = 18               # chunks between towers (~288 blocks)
-SEPARATION = 5
+SPACING = 12               # chunks between towers (~192 blocks)
+SEPARATION = 3
 SALT = 8412577             # shared by every tier: that is what stacks them onto one column
 
 POOL = "minecraft:trial_chambers/chambers/end"
 SIZE = 5                   # jigsaw depth. Gets the chamber, its slices, its spawners and loot.
-# 48 was too tight: a trial chamber is around 40 blocks across, so the free volume left for its
-# own slices was almost nothing and every tier came out as a bare shell. Vanilla uses 116.
-MAX_DISTANCE = 80
+MAX_DISTANCE = 112         # room for the chamber to build its own slices (vanilla uses 116)
 
-# Sideways lean, in chunks, per tier.
+# Sideways lean, in chunks, per tier. 30 entries for 30 tiers.
 OFFSETS = [
     (0, 0), (1, 0), (0, 1), (1, 1), (-1, 0),
     (0, -1), (1, -1), (-1, 1), (0, 0), (1, 0),
     (-1, -1), (0, 1), (1, 1), (-1, 0), (0, -1),
-    (1, 1), (-1, -1),
+    (1, 1), (-1, -1), (0, 0), (-1, 0), (1, -1),
+    (0, 1), (-1, 1), (1, 0), (0, -1), (-1, -1),
+    (1, 1), (0, 0), (-1, 0), (0, 1), (1, -1),
 ]
 
 
