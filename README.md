@@ -13,7 +13,7 @@ right.
 |---|---|
 | `spires` | Ground yanked into tall sharp needles, gouged into pits between them, plus needles left hanging in the air |
 | `classic` | Solid mass from bedrock to the height limit, carved into Swiss cheese by noise that ignores Z, so tunnels run along one axis |
-| `caverns` | Tier after tier of enormous open cave the whole way up, thick rolling floors between them, no roof at all on the top tier. Blob-shaped shafts drop through every tier, through the bedrock, into real void. Hills on every floor; holes, pores and long cracks through the floors (about a fifth of each one), so tiers connect. Towers of trial chambers stand in it: ~100 rooms packed wall to wall, bedrock to build limit, roughly one every 192 blocks |
+| `caverns` | Tier after tier of enormous open cave the whole way up, thick rolling floors between them, no roof at all on the top tier. Blob-shaped shafts drop through every tier, through the bedrock, into real void. Hills on every floor; holes, pores and long cracks through the floors (about a fifth of each one), so tiers connect. Towers of trial chambers stand in it: ~150 rooms packed wall to wall, bedrock to build limit, roughly one every 192 blocks |
 
 `/farlands locate [spires|classic|caverns]` points at the nearest one and prints a `/tp` for it.
 `/farlands towers` prints where the next caverns tower is *predicted* to stand, straight out of the
@@ -23,7 +23,7 @@ failed to build" without reading a log.
 ## Trying it
 
 Build lands in the `latest` release:
-`https://github.com/heebie7/farlands/releases/download/latest/farlands-0.11.0.jar`
+`https://github.com/heebie7/farlands/releases/download/latest/farlands-0.11.1.jar`
 
 Drop it in `mods/` next to Fabric API, make a **new** world, then:
 

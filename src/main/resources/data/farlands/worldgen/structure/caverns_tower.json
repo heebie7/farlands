@@ -6,7 +6,7 @@
   "start_pool": "minecraft:trial_chambers/chambers/end",
   "size": 5,
   "max_distance_from_center": 112,
-  "columns_x": 2,
+  "columns_x": 3,
   "columns_z": 2,
   "column_pitch": 24,
   "overlap": 1,
