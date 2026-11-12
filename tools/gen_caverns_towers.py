@@ -67,8 +67,8 @@ SIZE = 5                   # jigsaw depth. Gets the chamber, its slices, its spa
 MAX_DISTANCE = 112         # room for the chamber to build its own slices (vanilla uses 116)
 
 # Shape of one tower. Rooms in the pool are 24-34 wide, 29 deep and 14 or 19 tall.
-COLUMNS_X = 2              # footprint in rooms. 2x2 -> ~100 rooms per tower, ~55x55 blocks.
-COLUMNS_Z = 2              #   3x2 is ~150 rooms; 1x1 is a single ~25-room shaft.
+COLUMNS_X = 3              # footprint in rooms. 3x2 -> ~150 rooms per tower, ~80x55 blocks (Т 12.11: "в 5 или 6 раз").
+COLUMNS_Z = 2              #   2x2 is ~100 rooms (v0.11.0); 1x1 is a single ~25-room shaft.
 COLUMN_PITCH = 24          # blocks between column centres. Less than a room is wide on purpose:
                            #   neighbours bite into each other instead of leaving a gap.
 OVERLAP = 1                # blocks a room sinks into the one below: its floor IS that ceiling
