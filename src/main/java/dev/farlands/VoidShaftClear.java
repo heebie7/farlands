@@ -72,6 +72,11 @@ public class VoidShaftClear extends Feature<VoidShaftClear.Config> {
 		if (shaft == null) return false;
 
 		StructureWorldAccess world = context.getWorld();
+		// Same mask, every dimension: without this the bedrock floor of the ORDINARY overworld got
+		// punched out wherever test_zones has a shaft.
+		if (!ZoneDimension.hasZones(world.toServerWorld())) {
+			return false;
+		}
 		Config config = context.getConfig();
 		BlockState air = Blocks.AIR.getDefaultState();
 		BlockPos.Mutable cursor = new BlockPos.Mutable();

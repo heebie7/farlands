@@ -4,6 +4,9 @@
     "chance": 0.9,
     "min_y": -60,
     "max_y": 300,
-    "max_body_size": 4096
+    "max_body_size": 4096,
+    "big_chance": 0.5,
+    "big_cell": 128,
+    "sea_chance": 0.2
   }
 }

@@ -4,16 +4,11 @@
     "spacing": 12,
     "separation": 3,
     "salt": 8412577,
-    "zone_type": 2,
-    "tier": 9,
-    "min_tiers": 20,
-    "max_tiers": 30,
-    "offset_x": 1,
-    "offset_z": 0
+    "zone_type": 2
   },
   "structures": [
     {
-      "structure": "farlands:caverns_tower_9",
+      "structure": "farlands:caverns_tower",
       "weight": 1
     }
   ]

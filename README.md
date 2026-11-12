@@ -13,7 +13,7 @@ right.
 |---|---|
 | `spires` | Ground yanked into tall sharp needles, gouged into pits between them, plus needles left hanging in the air |
 | `classic` | Solid mass from bedrock to the height limit, carved into Swiss cheese by noise that ignores Z, so tunnels run along one axis |
-| `caverns` | Tier after tier of enormous open cave the whole way up, thick rolling floors between them, no roof at all on the top tier. Blob-shaped shafts drop through every tier, through the bedrock, into real void. Towers of trial chambers stand in it, room piled on room, 190-290 blocks tall, roughly one every 288 blocks |
+| `caverns` | Tier after tier of enormous open cave the whole way up, thick rolling floors between them, no roof at all on the top tier. Blob-shaped shafts drop through every tier, through the bedrock, into real void. Hills on every floor; holes, pores and long cracks through the floors (about a fifth of each one), so tiers connect. Towers of trial chambers stand in it: ~100 rooms packed wall to wall, bedrock to build limit, roughly one every 192 blocks |
 
 `/farlands locate [spires|classic|caverns]` points at the nearest one and prints a `/tp` for it.
 `/farlands towers` prints where the next caverns tower is *predicted* to stand, straight out of the
@@ -23,7 +23,7 @@ failed to build" without reading a log.
 ## Trying it
 
 Build lands in the `latest` release:
-`https://github.com/heebie7/farlands/releases/download/latest/farlands-0.1.0.jar`
+`https://github.com/heebie7/farlands/releases/download/latest/farlands-0.11.0.jar`
 
 Drop it in `mods/` next to Fabric API, make a **new** world, then:
 
@@ -64,12 +64,15 @@ Most knobs live at the top of [`tools/gen_noise_settings.py`](tools/gen_noise_se
 | `CAVERNS_PERIOD` / `CAVERNS_THICKNESS` | Blocks between caverns floors, and how thick a floor is. Thickness under ~12 aliases against the 8-block noise grid |
 | `CAVERNS_TOP_Y` / `CAVERNS_OPEN_SPAN` | Where the caverns roof stops existing, and over how many blocks it fades |
 | `CAVERNS_WOBBLE_AMP` / `CAVERNS_DETAIL_AMP` | How far the floors are warped off flat, long wave and short |
+| `CAVERNS_HILL_*` | Hills on the caverns floors: `AMP` is height (×10 blocks, roughly), `CUT` raises to get fewer, more separate ones |
+| `CAVERNS_HOLE_*` / `CAVERNS_PORE_*` / `CAVERNS_FISSURE_*` | Holes between tiers: big blobs, small ones, long cracks. **Lower `CUT` = more holes.** `CAVERNS_HOLE_GUARD_*` keeps them out of the lowest floor |
 | `CAVERNS_PIT_*` / `SPIRES_VOID_*` | Void shafts in caverns and in spires. **Must match `VoidShaftClear.SHAFTS`**, which removes the bedrock and the aquifer water inside them |
 | `SPIRE_XZ_SCALE` | Horizontal squeeze on the spire ridge noise. Higher = ridge crossings closer together = more needles per area |
 
 Towers have their own generator: [`tools/gen_caverns_towers.py`](tools/gen_caverns_towers.py) —
-tier count, tier spacing, jigsaw depth, sideways lean, and the per-tier frequency taper that
-gives towers different heights.
+how many columns of rooms a tower has (`COLUMNS_X` × `COLUMNS_Z`), how tightly they are packed
+(`COLUMN_PITCH`, `OVERLAP`), how much the tower leans (`DRIFT`, `MAX_DRIFT`), how far apart
+towers stand (`SPACING`) and the jigsaw depth.
 
 Needle spacing is not in that file — it is `firstOctave` in
 `worldgen/noise/spire_a.json` and `spire_b.json`. More negative = further apart.
@@ -77,7 +80,10 @@ Needle spacing is not in that file — it is `firstOctave` in
 Water thinning is configured in
 `worldgen/configured_feature/water_thinner.json`: `chance` (share of water *bodies* removed —
 one roll per connected body, it goes whole or stays whole), `min_y` (nothing at or below this is
-touched, so oceans and rivers survive), `max_y`, `max_body_size` (bigger bodies are left alone).
+touched), `max_y`, `max_body_size`. Bodies bigger than that, or crossing a chunk border, get a
+smaller chance: `big_chance`, one roll per `big_cell`-block square, and for anything at sea
+level (oceans, rivers) `sea_chance`, one roll for the whole zone — the bigger the water, the
+smaller the chance, but a whole sea can still vanish.
 
 Since v0.6.0 the zones sit in ordinary vanilla biomes, so the feature is attached to **every**
 overworld biome from Java (`BiomeModifications`) and tests "am I inside a zone" itself, using the
@@ -133,10 +139,15 @@ own. So the caverns towers use `farlands:zone_spread`, a `StructurePlacement` th
 `random_spread` and asks `ZoneGridDensityFunction.zoneTypeAt` first — the same function the
 terrain mask, `/farlands locate` and both features already use.
 
-Every tier of a tower shares one salt, so their placements land on the same chunk and the rooms
-pile up. Nothing in the game stops two different structures from occupying the same blocks: the
-no-overlap check only runs inside a single `StructureStart`. Overlapping `start_height` ranges
-are therefore what makes rooms grow into each other, on purpose.
+The zone mask is coordinate arithmetic and answers the same in every dimension, so the placement
+(and both features, and the commands) also ask `ZoneDimension.hasZones`: is `farlands:zone_grid`
+actually in this dimension's noise router? Without that the towers stood in the ordinary overworld
+too.
+
+A tower is one structure of type `farlands:tower` (`TowerStructure`). Every room is generated by
+vanilla's own jigsaw code from the trial-chamber pool, then moved as a whole so it sits wall to
+wall with its neighbours and directly on the room below, from the bottom of the world to the build
+limit.
 
 `pool_aliases` is copied verbatim from vanilla `trial_chambers.json` into every tier. It is not
 decoration — the chamber pools reference alias pools such as

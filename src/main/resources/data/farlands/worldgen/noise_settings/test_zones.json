@@ -368,37 +368,184 @@
       "argument1": {
        "type": "minecraft:add",
        "argument1": {
-        "type": "farlands:cavern_layers",
-        "period": 48,
-        "thickness": 20,
-        "base_y": -60
+        "type": "minecraft:add",
+        "argument1": {
+         "type": "farlands:cavern_layers",
+         "period": 48,
+         "thickness": 20,
+         "base_y": -60
+        },
+        "argument2": {
+         "type": "minecraft:add",
+         "argument1": {
+          "type": "minecraft:mul",
+          "argument1": {
+           "type": "minecraft:noise",
+           "noise": "farlands:cavern_wobble",
+           "xz_scale": 1.0,
+           "y_scale": 1.0
+          },
+          "argument2": {
+           "type": "minecraft:constant",
+           "argument": 1.1
+          }
+         },
+         "argument2": {
+          "type": "minecraft:mul",
+          "argument1": {
+           "type": "minecraft:noise",
+           "noise": "farlands:cavern_detail",
+           "xz_scale": 1.0,
+           "y_scale": 1.0
+          },
+          "argument2": {
+           "type": "minecraft:constant",
+           "argument": 0.12
+          }
+         }
+        }
        },
        "argument2": {
         "type": "minecraft:add",
         "argument1": {
          "type": "minecraft:mul",
          "argument1": {
-          "type": "minecraft:noise",
-          "noise": "farlands:cavern_wobble",
-          "xz_scale": 1.0,
-          "y_scale": 1.0
+          "type": "minecraft:max",
+          "argument1": {
+           "type": "minecraft:constant",
+           "argument": 0.0
+          },
+          "argument2": {
+           "type": "minecraft:add",
+           "argument1": {
+            "type": "minecraft:noise",
+            "noise": "farlands:cavern_hills",
+            "xz_scale": 1.0,
+            "y_scale": 0.5
+           },
+           "argument2": {
+            "type": "minecraft:constant",
+            "argument": -0.0
+           }
+          }
          },
          "argument2": {
           "type": "minecraft:constant",
-          "argument": 1.1
+          "argument": 2.6
          }
         },
         "argument2": {
          "type": "minecraft:mul",
          "argument1": {
-          "type": "minecraft:noise",
-          "noise": "farlands:cavern_detail",
-          "xz_scale": 1.0,
-          "y_scale": 1.0
+          "type": "minecraft:mul",
+          "argument1": {
+           "type": "minecraft:y_clamped_gradient",
+           "from_y": -46,
+           "to_y": -30,
+           "from_value": 0.0,
+           "to_value": 1.0
+          },
+          "argument2": {
+           "type": "minecraft:add",
+           "argument1": {
+            "type": "minecraft:mul",
+            "argument1": {
+             "type": "minecraft:max",
+             "argument1": {
+              "type": "minecraft:constant",
+              "argument": 0.0
+             },
+             "argument2": {
+              "type": "minecraft:add",
+              "argument1": {
+               "type": "minecraft:noise",
+               "noise": "farlands:cavern_holes",
+               "xz_scale": 1.0,
+               "y_scale": 0.5
+              },
+              "argument2": {
+               "type": "minecraft:constant",
+               "argument": -0.28
+              }
+             }
+            },
+            "argument2": {
+             "type": "minecraft:constant",
+             "argument": 14.0
+            }
+           },
+           "argument2": {
+            "type": "minecraft:add",
+            "argument1": {
+             "type": "minecraft:mul",
+             "argument1": {
+              "type": "minecraft:max",
+              "argument1": {
+               "type": "minecraft:constant",
+               "argument": 0.0
+              },
+              "argument2": {
+               "type": "minecraft:add",
+               "argument1": {
+                "type": "minecraft:noise",
+                "noise": "farlands:cavern_pores",
+                "xz_scale": 1.0,
+                "y_scale": 0.6
+               },
+               "argument2": {
+                "type": "minecraft:constant",
+                "argument": -0.42
+               }
+              }
+             },
+             "argument2": {
+              "type": "minecraft:constant",
+              "argument": 14.0
+             }
+            },
+            "argument2": {
+             "type": "minecraft:mul",
+             "argument1": {
+              "type": "minecraft:max",
+              "argument1": {
+               "type": "minecraft:constant",
+               "argument": 0.0
+              },
+              "argument2": {
+               "type": "minecraft:add",
+               "argument1": {
+                "type": "minecraft:constant",
+                "argument": 0.03
+               },
+               "argument2": {
+                "type": "minecraft:mul",
+                "argument1": {
+                 "type": "minecraft:abs",
+                 "argument": {
+                  "type": "minecraft:noise",
+                  "noise": "farlands:cavern_fissure",
+                  "xz_scale": 1.0,
+                  "y_scale": 0.3
+                 }
+                },
+                "argument2": {
+                 "type": "minecraft:constant",
+                 "argument": -1.0
+                }
+               }
+              }
+             },
+             "argument2": {
+              "type": "minecraft:constant",
+              "argument": 133.33333333333334
+             }
+            }
+           }
+          }
          },
          "argument2": {
           "type": "minecraft:constant",
-          "argument": 0.12
+          "argument": -1.0
          }
         }
        }
