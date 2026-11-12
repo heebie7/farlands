@@ -57,6 +57,13 @@ public class Farlands implements ModInitializer {
 				Identifier.of(MOD_ID, "zone_spread"),
 				ZoneSpreadPlacement.TYPE
 		);
+		// A whole tower as ONE structure: columns of trial chambers packed wall to wall from the
+		// bottom of the world to the build limit. See TowerStructure.
+		Registry.register(
+				Registries.STRUCTURE_TYPE,
+				Identifier.of(MOD_ID, "tower"),
+				TowerStructure.TYPE
+		);
 		Registry.register(
 				Registries.FEATURE,
 				Identifier.of(MOD_ID, "water_thinner"),

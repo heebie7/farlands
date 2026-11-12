@@ -48,6 +48,11 @@ public class LocateZoneCommand {
 	 */
 	private static int locateTower(CommandContext<ServerCommandSource> ctx) {
 		ServerCommandSource source = ctx.getSource();
+		if (!ZoneDimension.hasZones(source.getWorld())) {
+			source.sendFeedback(() -> Text.literal(
+				"[Farlands] This dimension has no Farlands zones. Go to farlands:test_zones first."), false);
+			return 0;
+		}
 		Vec3d v = source.getPosition();
 		int playerX = (int) Math.floor(v.x);
 		int playerZ = (int) Math.floor(v.z);
@@ -61,7 +66,7 @@ public class LocateZoneCommand {
 		int playerRegionX = Math.floorDiv(Math.floorDiv(playerX, 16), spacing);
 		int playerRegionZ = Math.floorDiv(Math.floorDiv(playerZ, 16), spacing);
 
-		int bestX = 0, bestZ = 0, bestTiers = 0;
+		int bestX = 0, bestZ = 0;
 		double bestDist = Double.MAX_VALUE;
 
 		for (int dx = -24; dx <= 24; dx++) {
@@ -80,8 +85,6 @@ public class LocateZoneCommand {
 					bestDist = dist;
 					bestX = blockX;
 					bestZ = blockZ;
-					bestTiers = ZoneSpreadPlacement.towerTiers(regionX, regionZ,
-							ZoneSpreadPlacement.TOWER_MIN_TIERS, ZoneSpreadPlacement.TOWER_MAX_TIERS);
 				}
 			}
 		}
@@ -92,18 +95,22 @@ public class LocateZoneCommand {
 			return 0;
 		}
 
-		final int fx = bestX, fz = bestZ, tiers = bestTiers;
-		final int topY = ZoneSpreadPlacement.TOWER_BASE_Y + (tiers - 1) * ZoneSpreadPlacement.TOWER_TIER_STEP;
+		final int fx = bestX, fz = bestZ;
 		final int dist = (int) bestDist;
 		source.sendFeedback(() -> Text.literal(
-			String.format("[Farlands] Nearest predicted tower at [%d, %d] (%d blocks), %d tiers, top ~y%d — /tp @s %d %d %d",
-				fx, fz, dist, tiers, topY, fx, topY + 20, fz)
+			String.format("[Farlands] Nearest predicted tower at [%d, %d] (%d blocks), bedrock to build limit — /tp @s %d 325 %d",
+				fx, fz, dist, fx, fz)
 		), false);
 		return 1;
 	}
 
 	private static int locateNearest(CommandContext<ServerCommandSource> ctx, int filterType) {
 		ServerCommandSource source = ctx.getSource();
+		if (!ZoneDimension.hasZones(source.getWorld())) {
+			source.sendFeedback(() -> Text.literal(
+				"[Farlands] This dimension has no Farlands zones. Go to farlands:test_zones first."), false);
+			return 0;
+		}
 		Vec3d v = source.getPosition();
 		int playerX = (int) Math.floor(v.x);
 		int playerZ = (int) Math.floor(v.z);

@@ -103,6 +103,38 @@ CAVERNS_OPEN_SPAN = 40     # blocks over which the roof fades out, so the rim is
 CAVERNS_WOBBLE_AMP = 1.1   # long-wave warp of the floors. 1.0 ~ moves a surface by thickness/2.
 CAVERNS_DETAIL_AMP = 0.12  # short-wave roughness on the same surfaces
 
+# --- caverns: hills, and holes between the tiers ---
+# Т 2026-11-12: "в кавернс хорошо было бы добавить больше холмов и провалов на уровнях, чтобы
+# можно было переходить с одного на другой... Провалов и пещер разных форм прям много. Как сыр с
+# дырками. Swiss cheese." Before this the only way between tiers was a void shaft, and the floors
+# were rolling but featureless.
+#
+# All four terms are plain noise added to the slab stack. Density 1.0 moves a floor surface by
+# CAVERNS_THICKNESS/2 = 10 blocks, and these noises have a standard deviation near 0.3 and almost
+# never leave +-1.0 - that is how the amplitudes below were picked. The proportions were checked
+# on rendered cross-sections (same octave maths as the game), not in the game.
+#
+#   hills    - broad mounds on the floors, 5-15 blocks, the odd one tall enough to reach the
+#              ceiling and stand as a pillar. Smooth on purpose: Т did not like "побитый" terrain.
+#   holes    - big blob-shaped holes, 20-60 blocks across, straight through a floor.
+#   pores    - the same thing small: 8-20 blocks. Together with holes: about a fifth of every
+#              floor is hole, no two the same shape.
+#   fissures - long winding cracks, 10-15 blocks wide, hundreds of blocks long. A different
+#              KIND of hole: you follow it rather than fall into it.
+#
+# None of them touch the lowest floor (CAVERNS_HOLE_GUARD_*): that one stays solid so that a hole
+# in a floor drops you onto the next floor, and only a real void shaft drops you out of the world.
+CAVERNS_HILL_AMP = 2.6       # 0 = no hills. Height of the tallest ones in tens of blocks, roughly.
+CAVERNS_HILL_CUT = 0.0       # higher = fewer, more separate hills
+CAVERNS_HOLE_AMP = 14.0      # how hard a hole cuts. High = sheer rim, low = funnel
+CAVERNS_HOLE_CUT = 0.28      # LOWER = more and bigger holes. 0.28 ~ 13% of a floor
+CAVERNS_PORE_AMP = 14.0
+CAVERNS_PORE_CUT = 0.42      # LOWER = more small holes. 0.42 ~ 5% of a floor
+CAVERNS_FISSURE_AMP = 4.0    # 0 = no cracks
+CAVERNS_FISSURE_WIDTH = 0.03 # half-width of a crack in noise units; 0.03 ~ 12 blocks across
+CAVERNS_HOLE_GUARD_BOTTOM = -46   # no holes at or below this y...
+CAVERNS_HOLE_GUARD_TOP = -30      # ...full strength from here up
+
 # --- caverns shafts: straight down, through every tier, through the bedrock, into nothing ---
 # ⚠ MUST MATCH the CAVERNS_PIT_* constants in VoidShaftClear.java, which is what removes the
 # bedrock lid and the aquifer water the density function cannot see.
@@ -142,6 +174,11 @@ def absolute(a):
 
 def dmax(a, b):
     return {"type": "minecraft:max", "argument1": a, "argument2": b}
+
+
+def above(fn, cut):
+    """max(0, fn - cut): zero almost everywhere, rising where the noise beats the cut-off."""
+    return dmax(const(0.0), add(fn, const(-cut)))
 
 
 def gradient(from_y, from_value, to_y, to_value):
@@ -318,6 +355,8 @@ def caverns_density():
       detail  - short roughness on the same surfaces
       roof    - a gradient that goes hard negative above CAVERNS_TOP_Y, so the last tier is open
                 to the sky instead of capped. This is the "пещеры, вышедшие на поверхность" part.
+      hills   - broad mounds on every floor
+      cheese  - holes, pores and fissures punched through the floors, so the tiers connect
       shafts  - void pits, but wider, rarer and of varying shape, straight through every tier.
                 VoidShaftClear then removes the bedrock and the aquifer water underneath them.
     """
@@ -332,7 +371,27 @@ def caverns_density():
         salt=CAVERNS_PIT_SALT,
         shape="organic",
     )
-    return add(add(layers, add(wobble, detail)), add(roof, shafts))
+
+    # Hills: only the positive part of the noise, so the ground between hills is untouched.
+    hills = mul(above(noise("farlands:cavern_hills", 1.0, 0.5), CAVERNS_HILL_CUT), const(CAVERNS_HILL_AMP))
+
+    # Holes: where a 3D blob noise climbs over its cut-off, density is pulled down hard. y_scale
+    # below 1 stretches the blobs vertically, so they go through a 20-block floor instead of
+    # denting it.
+    holes = mul(above(noise("farlands:cavern_holes", 1.0, 0.5), CAVERNS_HOLE_CUT), const(CAVERNS_HOLE_AMP))
+    pores = mul(above(noise("farlands:cavern_pores", 1.0, 0.6), CAVERNS_PORE_CUT), const(CAVERNS_PORE_AMP))
+    # Fissures: a band around the zero line of a slow noise. The zero line of a noise is a long
+    # closed curve, so the band is a long winding crack. Nearly vertical (y_scale 0.3).
+    fissures = mul(
+        dmax(const(0.0), add(const(CAVERNS_FISSURE_WIDTH),
+                             mul(absolute(noise("farlands:cavern_fissure", 1.0, 0.3)), const(-1.0)))),
+        const(CAVERNS_FISSURE_AMP / CAVERNS_FISSURE_WIDTH),
+    )
+    guard = gradient(CAVERNS_HOLE_GUARD_BOTTOM, 0.0, CAVERNS_HOLE_GUARD_TOP, 1.0)
+    cheese = mul(mul(guard, add(holes, add(pores, fissures))), const(-1.0))
+
+    terrain = add(add(layers, add(wobble, detail)), add(hills, cheese))
+    return add(terrain, add(roof, shafts))
 
 
 def void_density():

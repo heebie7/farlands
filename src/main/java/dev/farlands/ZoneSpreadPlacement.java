@@ -32,7 +32,10 @@ import java.util.Optional;
  *    shares one salt so they land on one column; giving tiers different offsets is what makes them
  *    lean out of each other instead of stacking like plates.
  *
- *  - tier / min_tiers / max_tiers decide how tall this tower is. v0.8.0 did that with vanilla's
+ *  - tier / min_tiers / max_tiers are LEGACY (v0.8-v0.10, one structure set per tier). Since
+ *    v0.11.0 a tower is a single farlands:tower structure that always runs bedrock to build
+ *    limit, so its one structure set leaves these at their defaults. History of the knob:
+ *    tier / min_tiers / max_tiers decided how tall a tower was. v0.8.0 did that with vanilla's
  *    `frequency`, on the theory that all tiers share a salt and therefore draw the same random
  *    number, so a low frequency up top would truncate the tower at a clean line. That was wrong:
  *    vanilla seeds the frequency roll from the CHUNK coordinates, and the tiers sit on chunks that
@@ -44,19 +47,13 @@ import java.util.Optional;
 public class ZoneSpreadPlacement extends StructurePlacement {
 	/**
 	 * ⚠ Must match the SPACING / SEPARATION / SALT in tools/gen_caverns_towers.py. Kept here so
-	 * /farlands towers predicts the same columns the generator builds.
+	 * /farlands towers predicts the same spots the generator builds on.
 	 */
 	public static final int TOWER_SPACING = 12;
 	public static final int TOWER_SEPARATION = 3;
 	public static final int TOWER_SALT = 8412577;
 	public static final int TOWER_HEIGHT_SALT = 55311;
 	public static final int CAVERNS_TYPE = 2;
-	/** Geometry of the tier stack, mirrored from the same script. Only /farlands towers reads it. */
-	public static final int TOWER_BASE_Y = -50;
-	public static final int TOWER_TIER_STEP = 10;
-	public static final int TOWER_MIN_TIERS = 20;
-	public static final int TOWER_MAX_TIERS = 30;
-
 	public static final MapCodec<ZoneSpreadPlacement> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
 			Codec.INT.fieldOf("spacing").forGetter(p -> p.spacing),
 			Codec.INT.fieldOf("separation").forGetter(p -> p.separation),
@@ -106,6 +103,11 @@ public class ZoneSpreadPlacement extends StructurePlacement {
 
 	@Override
 	protected boolean isStartChunk(StructurePlacementCalculator calculator, int chunkX, int chunkZ) {
+		// Only in a dimension whose terrain actually has zones. Without this the towers stood in
+		// the ordinary overworld at every coordinate where test_zones has a caverns zone.
+		if (!ZoneDimension.hasZones(calculator.getNoiseConfig())) {
+			return false;
+		}
 		if (ZoneGridDensityFunction.zoneTypeAt(chunkX * 16 + 8, chunkZ * 16 + 8) != zoneType) {
 			return false;
 		}
